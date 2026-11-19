@@ -10,6 +10,11 @@ plugins {
 val releaseKeystore = System.getenv("KEYSTORE_PATH")?.let { file(it) }?.takeIf { it.exists() }
 val releasePassword = System.getenv("KEYSTORE_PASSWORD")
 val releaseAlias = System.getenv("KEY_ALIAS") ?: "fuwanime"
+// Public OAuth client ID for the Android app (installed-app clients have no secret). A CI secret
+// or -PgoogleOAuthClientId can override it; blank values fall back to this default.
+val googleOAuthClientId = System.getenv("GOOGLE_OAUTH_CLIENT_ID")?.takeIf { it.isNotBlank() }
+  ?: (findProperty("googleOAuthClientId") as String?)?.takeIf { it.isNotBlank() }
+  ?: "684800998743-aaj1rf6splc47lirqq2170jcipr45k3n.apps.googleusercontent.com"
 // Only packaging tasks need signing. Match real task names so values like
 // `--tests com.fuwanime.MangaReleaseMappingTest` never trigger the release check.
 val buildingRelease = gradle.startParameter.taskNames.any { it.substringAfterLast(':').endsWith("Release") }
@@ -45,7 +50,7 @@ android {
     buildConfigField(
       "String",
       "GOOGLE_OAUTH_CLIENT_ID",
-      "\"${System.getenv("GOOGLE_OAUTH_CLIENT_ID") ?: (findProperty("googleOAuthClientId") as String? ?: "")}\"",
+      "\"$googleOAuthClientId\"",
     )
   }
 

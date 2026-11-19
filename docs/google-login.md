@@ -22,7 +22,14 @@ lokal dan tidak ada token yang ditulis ke disk.
 
 ## 2. Masukkan ke build
 
-Lewat environment (dipakai workflow):
+Build ini sudah memakai client ID default:
+
+```text
+684800998743-aaj1rf6splc47lirqq2170jcipr45k3n.apps.googleusercontent.com
+```
+
+Client ID aplikasi terpasang bukan rahasia, jadi aman disimpan di repo. Untuk menggantinya,
+pakai environment (dipakai workflow):
 
 ```bash
 export GOOGLE_OAUTH_CLIENT_ID="xxxx.apps.googleusercontent.com"
@@ -42,8 +49,8 @@ env:
   GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
 ```
 
-Tanpa client ID, tombol Google tetap tampil tetapi menampilkan petunjuk konfigurasi; pengguna
-bisa memilih **Lanjut sebagai tamu** agar aplikasi tetap bisa dipakai.
+Login Google wajib setelah gerbang usia. Jalur **Lanjut sebagai tamu** hanya muncul pada build
+yang benar-benar tidak punya client ID, supaya build sumber tidak menjadi jalan buntu.
 
 ## 3. Alur
 
