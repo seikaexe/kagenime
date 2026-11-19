@@ -211,9 +211,13 @@ fun LoginScreen(auth: GoogleAuth, onSignedIn: () -> Unit, onGuest: () -> Unit) {
                 }
             }
 
-            Spacer(Modifier.height(18.dp))
-            TextButton(onClick = onGuest) {
-                Text(stringResource(R.string.login_guest))
+            // Google login is required once it is configured. The guest path only exists so a
+            // source build without a client ID (and therefore without a working login) is usable.
+            if (!auth.isConfigured) {
+                Spacer(Modifier.height(18.dp))
+                TextButton(onClick = onGuest) {
+                    Text(stringResource(R.string.login_guest))
+                }
             }
             Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
