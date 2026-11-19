@@ -8,16 +8,16 @@ import org.junit.Test
 
 class GitHubFallbackTest {
     @Test fun readsTheTagFromTheRedirect() {
-        assertEquals("v2.7.0", tagFromReleaseLocation("https://github.com/fuwanime/fuwastream/releases/tag/v2.7.0"))
+        assertEquals("v2.7.0", tagFromReleaseLocation("https://github.com/seikaexe/kagenime/releases/tag/v2.7.0"))
         assertNull(tagFromReleaseLocation(null))
-        assertNull(tagFromReleaseLocation("https://github.com/fuwanime/fuwastream/releases"))
+        assertNull(tagFromReleaseLocation("https://github.com/seikaexe/kagenime/releases"))
     }
 
     @Test fun rebuildsTheReleaseFromItsTag() {
-        val r = releaseFromTag("fuwanime/fuwastream", "v2.7.0")
+        val r = releaseFromTag("seikaexe/kagenime", "v2.7.0")
         assertEquals("v2.7.0", r.tagName)
         assertEquals(
-            "https://github.com/fuwanime/fuwastream/releases/download/v2.7.0/FuwaStream-2.7.0.apk",
+            "https://github.com/seikaexe/kagenime/releases/download/v2.7.0/kagenime.apk",
             r.assets.single().url,
         )
     }

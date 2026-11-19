@@ -9,7 +9,7 @@
     <string name="legal_privacy_children">CHILDREN\nThe app is intended for users aged 13 and over. We do not knowingly collect data from children under 13, and we do not collect personal data from anyone at all.</string>
     <string name="legal_privacy_security">SECURITY\nData is kept in the app\'s private storage, protected by the Android sandbox. No personal data is transmitted to our servers because we have no servers.</string>
     <string name="legal_privacy_rights">YOUR RIGHTS AND DATA DELETION\nYou can delete your data at any time right in the app:\nSettings → Data → Delete all data.\nThis permanently removes favorites, watch history, search history, settings and downloaded files from the device. Uninstalling the app also removes all of its data.</string>
-    <string name="legal_privacy_changes">POLICY CHANGES\nChanges to this policy will be released with a new app version and recorded in the public repository: github.com/fuwanime/fuwastream.</string>
+    <string name="legal_privacy_changes">POLICY CHANGES\nChanges to this policy will be released with a new app version and recorded in the public repository: github.com/seikaexe/kagenime.</string>
     <string name="legal_privacy_contact">CONTACT\nPrivacy questions: fuwanimereal@gmail.com</string>
     <string name="legal_terms_updated">Last updated: November 1, 2026</string>
     <string name="legal_terms_acceptance">1. ACCEPTANCE\nBy installing and using Kagenime, you agree to these terms. If you do not agree, please stop using the app and uninstall it.</string>

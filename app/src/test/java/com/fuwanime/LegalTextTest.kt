@@ -16,7 +16,7 @@ class LegalTextTest {
         val res = testResources()
         assertEquals(12, LegalText.privacy(res).split("\n\n").size)
         assertEquals(10, LegalText.terms(res).split("\n\n").size)
-        assertTrue(LegalText.privacy(res).contains("RINGKASAN\nFuwaStream tidak memiliki akun"))
+        assertTrue(LegalText.privacy(res).contains("RINGKASAN\nKagenime tidak memiliki akun"))
         assertTrue(LegalText.about(res).contains("Email: ${LegalText.DEVELOPER_EMAIL}"))
     }
 
@@ -25,7 +25,7 @@ class LegalTextTest {
         val res = testResources()
         assertEquals(12, LegalText.privacy(res).split("\n\n").size)
         assertEquals(10, LegalText.terms(res).split("\n\n").size)
-        assertTrue(LegalText.privacy(res).contains("SUMMARY\nFuwaStream has no accounts"))
+        assertTrue(LegalText.privacy(res).contains("SUMMARY\nKagenime has no accounts"))
         assertTrue(LegalText.about(res).contains("DEVELOPER\n${LegalText.DEVELOPER_NAME}"))
     }
 
