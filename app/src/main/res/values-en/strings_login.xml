@@ -11,8 +11,9 @@
     <string name="login_guest_hint">Google sign-in is not configured in this build. You can still use the app as a guest.</string>
     <string name="login_failed">Google sign-in failed. Please try again.</string>
     <string name="login_cancelled">Sign-in cancelled.</string>
+    <string name="login_browser">Sign in via browser</string>
     <string name="login_config_title">Google sign-in is not configured</string>
-    <string name="login_config_body">Add a Google OAuth client ID for package com.fuwanime.app and the Kagenime release certificate, then rebuild. See docs/google-login.md.</string>
+    <string name="login_config_body">Add a Google OAuth client ID for package com.kagenime.app and the Kagenime release certificate, then rebuild. See docs/google-login.md.</string>
     <string name="login_age_note">For users aged 14 and over</string>
     <string name="account_hi">Hi, %1$s</string>
     <string name="account_guest">Kagenime Guest</string>

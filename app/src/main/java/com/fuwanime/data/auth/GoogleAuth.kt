@@ -17,8 +17,13 @@ import okhttp3.Request
 import org.json.JSONObject
 import java.security.MessageDigest
 import java.security.SecureRandom
-import java.util.UUID
 import android.util.Base64
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 
 /** Google OAuth 2.0 with PKCE; no client secret and no long-lived tokens are stored. */
 class GoogleAuth(
@@ -37,10 +42,24 @@ class GoogleAuth(
     val clientId: String = BuildConfig.GOOGLE_OAUTH_CLIENT_ID.trim()
     val isConfigured: Boolean get() = clientId.isNotBlank()
 
+    /**
+     * Google only accepts an https redirect or the reversed client ID for installed apps.
+     * `kagenime://oauth2redirect` is rejected with HTTP 400 invalid_request.
+     */
+    private val redirectScheme: String =
+        if (clientId.endsWith(CLIENT_SUFFIX)) {
+            "com.googleusercontent.apps.${clientId.removeSuffix(CLIENT_SUFFIX)}"
+        } else {
+            REDIRECT_SCHEME
+        }
+    private val redirectUri: String =
+        if (redirectScheme == REDIRECT_SCHEME) "$REDIRECT_SCHEME://$REDIRECT_HOST" else "$redirectScheme:/oauth2redirect"
+
     private val prefs = context.getSharedPreferences("google_oauth", Context.MODE_PRIVATE)
 
     fun isRedirect(uri: Uri?): Boolean =
-        uri != null && uri.scheme == REDIRECT_SCHEME && uri.host == REDIRECT_HOST
+        uri != null && uri.scheme == redirectScheme &&
+            (uri.host == REDIRECT_HOST || uri.path == "/oauth2redirect")
 
     fun deliverRedirect(uri: Uri?) {
         if (isRedirect(uri)) _redirects.value = uri
@@ -59,7 +78,7 @@ class GoogleAuth(
 
         val url = Uri.parse(AUTHORIZE_ENDPOINT).buildUpon()
             .appendQueryParameter("client_id", clientId)
-            .appendQueryParameter("redirect_uri", REDIRECT_URI)
+            .appendQueryParameter("redirect_uri", redirectUri)
             .appendQueryParameter("response_type", "code")
             .appendQueryParameter("scope", "openid email profile")
             .appendQueryParameter("code_challenge", challenge)
@@ -74,6 +93,41 @@ class GoogleAuth(
         data class SignedIn(val profile: AccountProfile) : Result
         data object Cancelled : Result
         data class Failed(val message: String) : Result
+    }
+
+    /**
+     * Native Google account picker (Credential Manager), shown inside Kagenime instead of a
+     * browser. The Cloud project needs a Web OAuth client (passed as server client ID) plus an
+     * Android OAuth client for package `com.kagenime.app` and the release certificate.
+     */
+    suspend fun signInWithAccountPicker(activity: Context): Result {
+        if (!isConfigured) return Result.Failed("not_configured")
+        return try {
+            val manager = CredentialManager.create(activity)
+            val option = GetGoogleIdOption.Builder()
+                .setFilterByAuthorizedAccounts(false)
+                .setServerClientId(clientId)
+                .setAutoSelectEnabled(false)
+                .build()
+            val request = GetCredentialRequest.Builder().addCredentialOption(option).build()
+            val credential = manager.getCredential(activity, request).credential
+            if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                val google = GoogleIdTokenCredential.createFrom(credential.data)
+                val profile = AccountProfile(
+                    name = google.displayName?.takeIf { it.isNotBlank() } ?: google.id.substringBefore('@'),
+                    email = google.id,
+                    photoUrl = google.profilePictureUri?.toString().orEmpty(),
+                )
+                settingsStore.saveGoogleAccount(profile.name, profile.email, profile.photoUrl)
+                Result.SignedIn(profile)
+            } else {
+                Result.Failed("unexpected_credential")
+            }
+        } catch (e: GetCredentialCancellationException) {
+            Result.Cancelled
+        } catch (e: Exception) {
+            Result.Failed(e.message ?: e.javaClass.simpleName)
+        }
     }
 
     /** Exchanges the authorization code and stores the Google profile locally. */
@@ -98,7 +152,7 @@ class GoogleAuth(
                         .add("code", code)
                         .add("code_verifier", verifier)
                         .add("grant_type", "authorization_code")
-                        .add("redirect_uri", REDIRECT_URI)
+                        .add("redirect_uri", redirectUri)
                         .build(),
                 )
                 .build()
@@ -145,7 +199,7 @@ class GoogleAuth(
     companion object {
         const val REDIRECT_SCHEME = "kagenime"
         const val REDIRECT_HOST = "oauth2redirect"
-        const val REDIRECT_URI = "$REDIRECT_SCHEME://$REDIRECT_HOST"
+        private const val CLIENT_SUFFIX = ".apps.googleusercontent.com"
         private const val AUTHORIZE_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
         private const val TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
         private const val USERINFO_ENDPOINT = "https://openidconnect.googleapis.com/v1/userinfo"

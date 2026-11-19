@@ -5,7 +5,7 @@ set -uo pipefail
 
 APK="$1"
 OUT="${2:-screenshots}"
-PKG=com.fuwanime.app
+PKG=com.kagenime.app
 mkdir -p "$OUT"
 
 adb install -r "$APK"

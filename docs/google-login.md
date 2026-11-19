@@ -1,26 +1,29 @@
-# Login Google (OAuth) di Kagenime
+# Login Google di Kagenime
 
-Kagenime memakai **OAuth 2.0 Authorization Code + PKCE** tanpa client secret. Setelah gerbang
-usia **14+**, pengguna diarahkan ke layar login Google; profil Google (nama, email, foto) disimpan
-lokal dan tidak ada token yang ditulis ke disk.
+Setelah gerbang usia **14+**, pengguna masuk dengan Google. Pemilih akun tampil **langsung di
+dalam aplikasi** lewat Android Credential Manager; tidak ada token yang ditulis ke disk.
 
-## 1. Buat client ID
+Jika pemilih akun bawaan tidak tersedia, layar login menampilkan tombol cadangan
+**Masuk lewat browser** yang memakai OAuth 2.0 Authorization Code + PKCE.
 
-1. Buka <https://console.cloud.google.com/apis/credentials>.
-2. **Create credentials → OAuth client ID → Android**.
-3. Package name: `com.fuwanime.app`.
-4. SHA-1 sertifikat rilis (dari keystore repo):
+## 1. Siapkan Google Cloud
 
-   ```bash
-   keytool -list -v -keystore keystore/kagenime-release.jks \
-     -storepass kagenime123 -alias fuwanime | grep SHA1
-   ```
+Buka <https://console.cloud.google.com/apis/credentials> pada project yang sama, lalu buat:
 
-5. Salin **Client ID** (bentuknya `xxxx.apps.googleusercontent.com`).
-6. Di **Authorized redirect URIs**, tambahkan `kagenime://oauth2redirect` bila konsol meminta
-   redirect URI (tipe client Android biasanya memakai package + SHA-1).
+1. **OAuth client ID → Android**
+   - Package name: `com.kagenime.app`
+   - SHA-1 sertifikat rilis:
+     `64:3C:44:B9:63:8A:43:78:8A:71:4F:DB:BF:41:F9:66:3C:8B:4B:79`
+   - SHA-1 debug (opsional, untuk build lokal):
+     jalankan `./gradlew signingReport` lalu salin SHA-1 varian debug.
+2. **OAuth client ID → Web application**
+   - Client ID inilah yang dipakai aplikasi sebagai `serverClientId` Credential Manager.
+   - Android client di atas mengizinkan package + sertifikat ini memakai project tersebut.
 
-## 2. Masukkan ke build
+> Client ID Android saja cukup untuk alur browser, tetapi **pemilih akun dalam aplikasi**
+> memerlukan Web client ID. Gunakan client ID Web pada secret/env bila ingin mode native.
+
+## 2. Client ID di build
 
 Build ini sudah memakai client ID default:
 
@@ -28,8 +31,7 @@ Build ini sudah memakai client ID default:
 684800998743-aaj1rf6splc47lirqq2170jcipr45k3n.apps.googleusercontent.com
 ```
 
-Client ID aplikasi terpasang bukan rahasia, jadi aman disimpan di repo. Untuk menggantinya,
-pakai environment (dipakai workflow):
+Client ID aplikasi terpasang bukan rahasia, jadi aman disimpan di repo. Untuk menggantinya:
 
 ```bash
 export GOOGLE_OAUTH_CLIENT_ID="xxxx.apps.googleusercontent.com"
@@ -42,20 +44,29 @@ Atau lewat `~/.gradle/gradle.properties` / `local.properties`:
 googleOAuthClientId=xxxx.apps.googleusercontent.com
 ```
 
-Di GitHub Actions, tambahkan repository secret `GOOGLE_OAUTH_CLIENT_ID` dan teruskan ke step build:
+Di GitHub Actions, tambahkan repository secret `GOOGLE_OAUTH_CLIENT_ID`; workflow sudah
+meneruskannya ke step build.
 
-```yaml
-env:
-  GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+## 3. Redirect URI
+
+Google menolak skema sembarang seperti `kagenime://oauth2redirect` dengan
+`Error 400: invalid_request`. Untuk aplikasi terpasang, redirect yang benar adalah kebalikan
+client ID:
+
+```text
+com.googleusercontent.apps.<client-id-tanpa-.apps.googleusercontent.com>:/oauth2redirect
 ```
 
-Login Google wajib setelah gerbang usia. Jalur **Lanjut sebagai tamu** hanya muncul pada build
-yang benar-benar tidak punya client ID, supaya build sumber tidak menjadi jalan buntu.
+Skema ini diturunkan otomatis dari client ID saat build, jadi tidak perlu didaftarkan manual
+untuk tipe client Android. `AndroidManifest.xml` memakai placeholder `googleOAuthScheme` yang
+nilainya dihitung di `app/build.gradle.kts`.
 
-## 3. Alur
+## 4. Alur
 
-- `MainActivity` menerima deep link `kagenime://oauth2redirect`.
-- `GoogleAuth` menukar authorization code di `https://oauth2.googleapis.com/token` dengan PKCE.
-- Profil diambil dari `https://openidconnect.googleapis.com/v1/userinfo` dan disimpan lewat
-  `SettingsStore.saveGoogleAccount(...)`.
+- Tombol **Masuk dengan Google** memanggil Credential Manager dan menampilkan pemilih akun
+  Android. Profil (nama, email, foto) disimpan lewat `SettingsStore.saveGoogleAccount(...)`.
+- Bila alur native gagal, tombol **Masuk lewat browser** membuka consent screen Google.
+- `MainActivity` menerima deep link balik, lalu `GoogleAuth` menukar authorization code di
+  `https://oauth2.googleapis.com/token` dengan PKCE dan mengambil profil dari
+  `https://openidconnect.googleapis.com/v1/userinfo`.
 - Kartu akun di Beranda menampilkan nama, foto/initial, badge **14+**, dan level lokal.

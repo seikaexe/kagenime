@@ -37,7 +37,7 @@ Full guide: `/home/sakamoto/reports/Panduan pakai skill Claude.md`.
 
 # FuwaStream Agent Guide
 
-FuwaStream (`com.fuwanime.app`) is an ad-free Android anime streaming and manga reading application built with Kotlin, Jetpack Compose (Material 3), Room, and Media3 ExoPlayer.
+FuwaStream (`com.kagenime.app`) is an ad-free Android anime streaming and manga reading application built with Kotlin, Jetpack Compose (Material 3), Room, and Media3 ExoPlayer.
 
 - **Min SDK**: 24 (Android 7.0+)
 - **Compile / Target SDK**: 37

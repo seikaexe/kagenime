@@ -15,6 +15,14 @@ val releaseAlias = System.getenv("KEY_ALIAS") ?: "fuwanime"
 val googleOAuthClientId = System.getenv("GOOGLE_OAUTH_CLIENT_ID")?.takeIf { it.isNotBlank() }
   ?: (findProperty("googleOAuthClientId") as String?)?.takeIf { it.isNotBlank() }
   ?: "684800998743-aaj1rf6splc47lirqq2170jcipr45k3n.apps.googleusercontent.com"
+// Google rejects arbitrary custom redirect schemes. Installed-app clients use the reversed
+// client ID ("com.googleusercontent.apps.<id>:/oauth2redirect"), so derive it from the client ID.
+val googleOAuthScheme =
+  if (googleOAuthClientId.endsWith(".apps.googleusercontent.com")) {
+    "com.googleusercontent.apps.${googleOAuthClientId.removeSuffix(".apps.googleusercontent.com")}"
+  } else {
+    "kagenime"
+  }
 // Only packaging tasks need signing. Match real task names so values like
 // `--tests com.fuwanime.MangaReleaseMappingTest` never trigger the release check.
 val buildingRelease = gradle.startParameter.taskNames.any { it.substringAfterLast(':').endsWith("Release") }
@@ -33,7 +41,7 @@ android {
   lint { fatal += "NewApi" }
 
   defaultConfig {
-    applicationId = "com.fuwanime.app"
+    applicationId = "com.kagenime.app"
     minSdk = 24
     targetSdk = 37
     // F-Droid & CI pass VERSION_CODE/VERSION_NAME as env vars. Fallback to fixed
@@ -52,6 +60,7 @@ android {
       "GOOGLE_OAUTH_CLIENT_ID",
       "\"$googleOAuthClientId\"",
     )
+    manifestPlaceholders["googleOAuthScheme"] = googleOAuthScheme
   }
 
   signingConfigs {
@@ -110,6 +119,9 @@ dependencies {
   implementation(libs.androidx.compose.ui.graphics)
   implementation(libs.androidx.compose.ui.tooling.preview)
   implementation(libs.androidx.core.ktx)
+  implementation(libs.androidx.credentials)
+  implementation(libs.androidx.credentials.play.services.auth)
+  implementation(libs.googleid)
   implementation(libs.androidx.datastore.preferences)
   implementation(libs.androidx.lifecycle.runtime.compose)
   implementation(libs.androidx.lifecycle.runtime.ktx)

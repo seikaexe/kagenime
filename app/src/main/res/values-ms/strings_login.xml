@@ -11,8 +11,9 @@
     <string name="login_guest_hint">Log masuk Google belum dikonfigurasikan dalam binaan ini. Anda masih boleh menggunakan aplikasi sebagai tetamu.</string>
     <string name="login_failed">Log masuk Google gagal. Sila cuba lagi.</string>
     <string name="login_cancelled">Log masuk dibatalkan.</string>
+    <string name="login_browser">Masuk melalui pelayar</string>
     <string name="login_config_title">Log masuk Google belum dikonfigurasikan</string>
-    <string name="login_config_body">Tambahkan client ID OAuth Google untuk pakej com.fuwanime.app dan sijil keluaran Kagenime, kemudian bina semula. Lihat docs/google-login.md.</string>
+    <string name="login_config_body">Tambahkan client ID OAuth Google untuk pakej com.kagenime.app dan sijil keluaran Kagenime, kemudian bina semula. Lihat docs/google-login.md.</string>
     <string name="login_age_note">Untuk pengguna berumur 14 tahun ke atas</string>
     <string name="account_hi">Hai, %1$s</string>
     <string name="account_guest">Tetamu Kagenime</string>

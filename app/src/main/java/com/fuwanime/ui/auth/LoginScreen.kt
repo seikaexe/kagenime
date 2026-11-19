@@ -66,6 +66,7 @@ fun LoginScreen(auth: GoogleAuth, onSignedIn: () -> Unit, onGuest: () -> Unit) {
     var working by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
     var showPrivacy by remember { mutableStateOf(false) }
+    var browserFallback by remember { mutableStateOf(false) }
 
     val redirect by auth.redirects.collectAsStateWithLifecycle()
     LaunchedEffect(redirect) {
@@ -150,12 +151,28 @@ fun LoginScreen(auth: GoogleAuth, onSignedIn: () -> Unit, onGuest: () -> Unit) {
             Button(
                 onClick = {
                     message = null
-                    val intent = auth.authorizationIntent()
-                    if (intent == null) {
+                    browserFallback = false
+                    if (!auth.isConfigured) {
                         message = context.getString(R.string.login_guest_hint)
                     } else {
                         working = true
-                        context.startActivity(intent)
+                        scope.launch {
+                            when (val result = auth.signInWithAccountPicker(context)) {
+                                is GoogleAuth.Result.SignedIn -> {
+                                    working = false
+                                    onSignedIn()
+                                }
+                                GoogleAuth.Result.Cancelled -> {
+                                    working = false
+                                    message = context.getString(R.string.login_cancelled)
+                                }
+                                is GoogleAuth.Result.Failed -> {
+                                    working = false
+                                    message = context.getString(R.string.login_failed)
+                                    browserFallback = true
+                                }
+                            }
+                        }
                     }
                 },
                 enabled = !working,
@@ -187,6 +204,20 @@ fun LoginScreen(auth: GoogleAuth, onSignedIn: () -> Unit, onGuest: () -> Unit) {
                     color = MaterialTheme.colorScheme.error,
                     textAlign = TextAlign.Center,
                 )
+            }
+
+            if (browserFallback && !working) {
+                TextButton(onClick = {
+                    message = null
+                    val intent = auth.authorizationIntent()
+                    if (intent == null) {
+                        message = context.getString(R.string.login_guest_hint)
+                    } else {
+                        context.startActivity(intent)
+                    }
+                }) {
+                    Text(stringResource(R.string.login_browser))
+                }
             }
 
             if (!auth.isConfigured) {

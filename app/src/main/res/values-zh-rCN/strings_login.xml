@@ -11,8 +11,9 @@
     <string name="login_guest_hint">此版本尚未配置 Google 登录。你仍然可以以访客身份使用应用。</string>
     <string name="login_failed">Google 登录失败，请重试。</string>
     <string name="login_cancelled">登录已取消。</string>
+    <string name="login_browser">通过浏览器登录</string>
     <string name="login_config_title">尚未配置 Google 登录</string>
-    <string name="login_config_body">为包名 com.fuwanime.app 和 Kagenime 发布证书添加 Google OAuth 客户端 ID，然后重新构建。参见 docs/google-login.md。</string>
+    <string name="login_config_body">为包名 com.kagenime.app 和 Kagenime 发布证书添加 Google OAuth 客户端 ID，然后重新构建。参见 docs/google-login.md。</string>
     <string name="login_age_note">仅限 14 岁及以上用户</string>
     <string name="account_hi">你好，%1$s</string>
     <string name="account_guest">Kagenime 访客</string>

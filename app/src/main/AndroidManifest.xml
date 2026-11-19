@@ -37,12 +37,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Google OAuth redirect: kagenime://oauth2redirect -->
+            <!-- Google OAuth fallback redirect: com.googleusercontent.apps.<client-id>:/oauth2redirect -->
             <intent-filter android:autoVerify="false">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="kagenime" android:host="oauth2redirect" />
+                <data android:scheme="${googleOAuthScheme}" />
             </intent-filter>
         </activity>
 
