@@ -1,0 +1,917 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Kagenime</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap">
+<style>
+/* Layout: a phone-sized app shell (top bar area, scrolling screen, bottom tab bar) centered on desktop, full-bleed on phones. */
+:root{
+  --bg:#FDF7FF; --surface:#FDF7FF; --c-low:#F8F1FA; --c:#F2ECF5; --c-high:#ECE6EF; --c-highest:#E6E0E9;
+  --fg:#1D1A22; --fg2:#4A4555; --outline:#6A6474; --outline-v:#CBC3D7;
+  --primary:#6A4BC4; --on-primary:#fff; --primary-c:#EBDCFF; --on-primary-c:#240061;
+  --secondary:#9C3E5F; --sec-c:#FFD9E3; --tertiary:#006686; --error:#BA1A1A;
+  --stage:#E9E2EE; --font:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0B0A0F; --surface:#0B0A0F; --c-low:#16141C; --c:#1A1721; --c-high:#1F1C27; --c-highest:#312D39;
+  --fg:#E8E0EE; --fg2:#A39DAE; --outline:#958EA1; --outline-v:#2A2633;
+  --primary:#D4BBFF; --on-primary:#3A1B76; --primary-c:#52348E; --on-primary-c:#EBDCFF;
+  --secondary:#FFB0C9; --sec-c:#2A2238; --tertiary:#8FD3F2; --error:#FFB4AB; --stage:#000; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0B0A0F; --surface:#0B0A0F; --c-low:#16141C; --c:#1A1721; --c-high:#1F1C27; --c-highest:#312D39;
+  --fg:#E8E0EE; --fg2:#A39DAE; --outline:#958EA1; --outline-v:#2A2633;
+  --primary:#D4BBFF; --on-primary:#3A1B76; --primary-c:#52348E; --on-primary-c:#EBDCFF;
+  --secondary:#FFB0C9; --sec-c:#2A2238; --tertiary:#8FD3F2; --error:#FFB4AB; --stage:#000; color-scheme:dark}
+:root[data-amoled="1"]{--bg:#000;--surface:#000;--c-low:#0B0A0F;--c:#121017;--c-high:#1B1821;--c-highest:#25212C}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{margin:0;background:var(--stage);color:var(--fg);font-family:var(--font);font-size:14px;line-height:1.4;
+  display:flex;align-items:center;justify-content:center;padding-block:0}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+svg{display:block;flex:none}
+.ic{width:24px;height:24px;fill:currentColor}
+.app{position:relative;width:100%;max-width:430px;height:100%;max-height:900px;background:var(--bg);overflow:hidden;
+  display:flex;flex-direction:column}
+@media (min-width:520px) and (min-height:760px){.app{height:min(900px,calc(100% - 32px));border-radius:36px;box-shadow:0 0 0 1px var(--outline-v),0 30px 80px rgba(0,0,0,.45)}}
+.view{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;position:relative}
+.view::-webkit-scrollbar{display:none}
+.pad{padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+h1.title{margin:0;font-size:28px;font-weight:800;letter-spacing:-.02em;padding:14px 20px 8px}
+.sub{color:var(--fg2);font-size:13px}
+/* tab bar */
+nav.tabs{display:flex;justify-content:space-around;background:var(--c-low);padding:10px 4px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--outline-v);flex:none}
+nav.tabs button{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--fg2);min-width:60px}
+nav.tabs .pill{width:56px;height:30px;border-radius:15px;display:grid;place-items:center;transition:background .2s}
+nav.tabs button[aria-current=true]{color:var(--fg);font-weight:800}
+nav.tabs button[aria-current=true] .pill{background:var(--primary-c);color:var(--on-primary-c)}
+/* chips */
+.chips{display:flex;gap:8px;overflow-x:auto;padding:4px 20px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;padding:8px 16px;border-radius:20px;border:1px solid var(--outline-v);font-weight:600;font-size:13px;display:inline-flex;gap:6px;align-items:center}
+.chip[aria-pressed=true]{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+/* search */
+.search{margin:6px 20px 10px;display:flex;align-items:center;gap:10px;border:1px solid var(--outline-v);border-radius:16px;padding:0 14px;height:52px;background:var(--c-low)}
+.search input{flex:1;min-width:0;background:none;border:0;color:var(--fg);font:inherit;font-size:15px;outline:0}
+.search:focus-within{border-color:var(--primary)}
+/* poster */
+.poster{position:relative;border-radius:14px;overflow:hidden;aspect-ratio:2/3;width:100%;background:var(--c-high);display:flex;align-items:flex-end}
+.poster .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:48px;letter-spacing:-.04em;color:rgba(255,255,255,.28)}
+.poster .pt{position:relative;width:100%;padding:28px 8px 8px;background:linear-gradient(transparent,rgba(0,0,0,.72));color:#fff;font-size:11px;font-weight:700;line-height:1.2}
+.badge{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:8px;display:flex;gap:5px;align-items:center;backdrop-filter:blur(6px)}
+.badge i{width:6px;height:6px;border-radius:50%;background:#ff4d6d}
+.badge.new{background:var(--primary);color:var(--on-primary);border-radius:6px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 10px;padding:4px 20px 24px}
+.card{text-align:left;display:block;min-width:0}
+.card .nm{margin-top:7px;font-weight:600;font-size:13px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .mt{font-size:10px;color:var(--fg2);font-weight:600;letter-spacing:.04em;margin-top:3px;text-transform:uppercase}
+.row{display:flex;gap:12px;overflow-x:auto;padding:4px 20px 6px;scrollbar-width:none}
+.row::-webkit-scrollbar{display:none}
+.row .card{flex:none;width:112px}
+.sec{display:flex;justify-content:space-between;align-items:baseline;padding:22px 20px 8px}
+.sec h2{margin:0;font-size:17px;font-weight:700}
+.sec button{color:var(--primary);font-weight:700;font-size:13px}
+/* home hero */
+.top{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 4px 20px;position:absolute;inset:0 0 auto;z-index:3}
+.top>span:last-child{display:flex}
+.logo{font-weight:800;font-size:20px;letter-spacing:-.03em}
+.logo b{color:var(--fg2);font-weight:600}
+.iconbtn{width:44px;height:44px;border-radius:50%;display:grid;place-items:center}
+.iconbtn:hover{background:rgba(127,127,127,.18)}
+.hero{position:relative;padding:68px 20px 18px;text-align:center;overflow:hidden}
+.hero .bg{position:absolute;inset:0;filter:blur(36px) saturate(1.2);opacity:.55;transform:scale(1.3)}
+.hero .fade{position:absolute;inset:0;background:linear-gradient(transparent 30%,var(--bg))}
+.hero>*:not(.bg):not(.fade){position:relative}
+.hero .pw{width:128px;margin:0 auto 14px;box-shadow:0 12px 36px rgba(0,0,0,.5)}
+.hero .rank{display:inline-flex;gap:8px;align-items:center;font-size:13px;color:var(--fg2);font-weight:600}
+.hero .rank b{background:var(--primary-c);color:var(--on-primary-c);font-size:10px;padding:3px 8px;border-radius:6px;letter-spacing:.04em}
+.hero h2{margin:8px 0 4px;font-size:26px;font-weight:800;letter-spacing:-.03em;line-height:1.12;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.hero .st{font-size:12px;color:var(--fg2)}
+.hero .acts{display:flex;gap:10px;margin-top:16px}
+.btn{height:52px;border-radius:26px;background:var(--fg);color:var(--bg);font-weight:700;font-size:15px;display:inline-flex;align-items:center;justify-content:center;gap:8px;flex:1}
+.btn.pri{background:var(--primary);color:var(--on-primary);border-radius:16px}
+.btn.out{background:none;color:var(--fg);border:1px solid var(--outline);height:46px;border-radius:23px;font-size:14px}
+.btn:disabled{opacity:.4}
+.sq{width:52px;height:52px;border-radius:16px;border:1px solid var(--outline-v);display:grid;place-items:center;flex:none;background:var(--c-low)}
+.dots{display:flex;gap:6px;justify-content:center;margin-top:14px}
+.dots i{width:6px;height:6px;border-radius:3px;background:var(--outline-v);transition:width .25s,background .25s}
+.dots i.on{width:22px;background:var(--primary)}
+/* schedule */
+.days{display:flex;border-bottom:1px solid var(--outline-v);overflow-x:auto;scrollbar-width:none;padding:0 12px}
+.days::-webkit-scrollbar{display:none}
+.days button{flex:none;padding:12px 14px;font-weight:600;color:var(--fg2);position:relative;display:flex;gap:6px;align-items:center}
+.days button[aria-selected=true]{color:var(--fg);font-weight:800}
+.days button[aria-selected=true]::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:3px;border-radius:3px 3px 0 0;background:var(--primary)}
+.days em{font-style:normal;font-size:10px;background:var(--primary-c);color:var(--on-primary-c);padding:2px 7px;border-radius:9px}
+.srow{display:flex;gap:14px;padding:10px 20px;text-align:left;width:100%}
+.srow .poster{width:76px;flex:none}
+.srow .info{min-width:0;display:flex;flex-direction:column;gap:5px;justify-content:center}
+.srow .t{font-weight:700;font-size:15px;line-height:1.25}
+.time{display:inline-flex;gap:5px;align-items:center;background:var(--primary-c);color:var(--on-primary-c);font-size:11px;font-weight:700;padding:3px 9px;border-radius:10px;align-self:flex-start}
+.meta{font-size:12px;color:var(--fg2)}
+.eye{display:inline-flex;gap:5px;align-items:center;background:var(--c-high);padding:2px 8px;border-radius:9px;font-size:11px;font-weight:600;color:var(--fg2);align-self:flex-start}
+/* detail */
+.dhead{position:relative;padding:0 20px;min-height:360px;display:flex;flex-direction:column;justify-content:flex-end}
+.dhead .bg{position:absolute;inset:0;opacity:.8}
+.dhead .fade{position:absolute;inset:0;background:linear-gradient(rgba(0,0,0,.25),transparent 35%,var(--bg) 95%)}
+.dhead>*:not(.bg):not(.fade){position:relative}
+.dbar{position:sticky;top:0;z-index:5;height:0}
+.dbar .iconbtn{position:absolute;top:12px;left:10px;background:rgba(0,0,0,.35);color:#fff;backdrop-filter:blur(8px)}
+.dtop{display:flex;gap:16px;align-items:flex-end}
+.dtop .poster{width:104px;flex:none;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.dtop h1{margin:0 0 4px;font-size:24px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.stats{display:flex;gap:18px;padding:14px 20px 0;font-size:13px;color:var(--fg2)}
+.stats b{color:var(--fg);font-weight:800}
+.genres{display:flex;flex-wrap:wrap;gap:8px;padding:16px 20px 0}
+.genres .chip{padding:8px 15px}
+.syn{padding:16px 20px 0;color:var(--fg2);font-size:13.5px;line-height:1.55}
+.syn.clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.more{padding:6px 20px 0;font-weight:700;font-size:13px}
+.info-box{margin:16px 20px 0;background:var(--c);border-radius:18px;padding:6px 16px}
+.info-box div{display:flex;padding:10px 0;font-size:13px}
+.info-box span{width:110px;color:var(--fg2);flex:none}
+.info-box b{font-weight:600}
+.eps{display:flex;flex-direction:column}
+.ep{display:flex;gap:12px;align-items:center;padding:8px 20px;text-align:left;width:100%}
+.ep .th{width:112px;aspect-ratio:16/9;border-radius:10px;overflow:hidden;flex:none;position:relative}
+.ep .th .ph{position:absolute;inset:0}
+.ep .th .pg{position:absolute;left:0;bottom:0;height:3px;background:var(--primary)}
+.ep .tx{flex:1;min-width:0}
+.ep .tx b{display:block;font-size:14px}
+.ep .tx span{font-size:12px;color:var(--fg2)}
+.ep .dl{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--fg2);flex:none;position:relative}
+.ep .dl:hover{background:var(--c-high)}
+.ring{position:absolute;inset:3px;border-radius:50%;background:conic-gradient(var(--primary) calc(var(--p)*1%),var(--outline-v) 0)}
+.ring::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--bg)}
+/* player */
+.screen{position:relative;aspect-ratio:16/9;background:#000;overflow:hidden;flex:none}
+.screen .scene{position:absolute;inset:0;transition:filter .3s}
+.screen.paused .scene{filter:brightness(.55)}
+.screen .ctl{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;color:#fff;background:linear-gradient(rgba(0,0,0,.55),transparent 35%,transparent 55%,rgba(0,0,0,.7));transition:opacity .25s}
+.screen .ctl.hide{opacity:0;pointer-events:none}
+.ptop{display:flex;align-items:center;gap:4px;padding:6px 6px 0}
+.ptop .ttl{flex:1;min-width:0;line-height:1.15}
+.ptop .ttl b{font-size:13px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ptop .ttl span{font-size:11px;opacity:.85}
+.ptop .iconbtn{width:38px;height:38px;color:#fff}
+.pmid{display:flex;justify-content:center;align-items:center;gap:22px}
+.pmid button{color:#fff;display:grid;place-items:center}
+.pmid .big{width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,.18);backdrop-filter:blur(6px)}
+.pbot{padding:0 12px 8px}
+.pbot .tm{display:flex;justify-content:space-between;font-size:11px;font-weight:600;margin-bottom:4px;font-variant-numeric:tabular-nums}
+.seek{position:relative;height:18px;display:flex;align-items:center;cursor:pointer}
+.seek::before{content:"";position:absolute;left:0;right:0;height:3px;border-radius:2px;background:rgba(255,255,255,.3)}
+.seek i{position:absolute;left:0;height:3px;border-radius:2px;background:var(--primary)}
+.seek u{position:absolute;width:12px;height:12px;border-radius:50%;background:var(--primary);margin-left:-6px}
+.skip{position:absolute;right:12px;bottom:46px;background:rgba(0,0,0,.65);color:#fff;border:1px solid rgba(255,255,255,.5);border-radius:10px;padding:7px 14px;font-weight:700;font-size:12px;z-index:2}
+.ptitle{padding:16px 20px 0}
+.ptitle h1{margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em}
+.ptitle span{color:var(--primary);font-weight:700;font-size:13px}
+.navrow{display:flex;gap:10px;padding:14px 20px 0}
+.navrow .btn{height:46px;border-radius:14px;font-size:14px}
+.navrow .btn.ghost{background:var(--c);color:var(--fg2)}
+.lbl{padding:20px 20px 8px;font-weight:700;font-size:13px}
+.qrow{display:flex;gap:8px;padding:0 20px;flex-wrap:wrap}
+.qrow .chip{padding:7px 14px;border-radius:10px}
+.qrow .chip[aria-pressed=true]{background:var(--primary-c);color:var(--on-primary-c);border-color:var(--primary-c)}
+.hrow{display:flex;gap:12px;overflow-x:auto;padding:0 20px;scrollbar-width:none}
+.hrow::-webkit-scrollbar{display:none}
+.hrow .e{flex:none;width:136px;text-align:left}
+.hrow .th{aspect-ratio:16/9;border-radius:10px;overflow:hidden;position:relative}
+.hrow .th .ph{position:absolute;inset:0}
+.hrow .th em{position:absolute;inset:0;display:grid;place-items:center;font-style:normal;font-weight:800;color:#fff;background:rgba(0,0,0,.45)}
+.hrow .e b{display:block;margin-top:6px;font-size:13px}
+.hrow .e[aria-current=true] b{color:var(--primary)}
+/* library */
+.seg{display:flex;margin:6px 20px 14px;background:var(--c-low);border-radius:14px;padding:4px}
+.seg button{flex:1;padding:10px 4px;border-radius:11px;font-weight:600;color:var(--fg2);font-size:13px}
+.seg button[aria-selected=true]{background:var(--primary-c);color:var(--on-primary-c);font-weight:800}
+.empty{text-align:center;padding:60px 36px;color:var(--fg2)}
+.empty b{display:block;color:var(--fg);font-size:17px;margin-bottom:6px}
+.hist{display:flex;gap:14px;padding:8px 20px;width:100%;text-align:left;align-items:center}
+.hist .th{width:124px;aspect-ratio:16/9;border-radius:10px;overflow:hidden;position:relative;flex:none}
+.hist .th .ph{position:absolute;inset:0}
+.hist .th .pg{position:absolute;left:0;bottom:0;height:3px;background:var(--primary)}
+.hist b{display:block;font-size:14px;line-height:1.25}
+.weekcard{margin:0 20px 14px;background:var(--c);border-radius:18px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;width:calc(100% - 40px);text-align:left}
+.weekcard small{color:var(--fg2);display:block;font-size:12px}
+.weekcard b{font-size:18px}
+/* settings */
+.sg{padding:22px 20px 6px;color:var(--primary);font-weight:700;font-size:13px}
+.set{display:flex;gap:16px;align-items:center;padding:12px 20px;width:100%;text-align:left}
+.set .ic{color:var(--fg2)}
+.set .tx{flex:1;min-width:0}
+.set .tx b{display:block;font-weight:600;font-size:15px}
+.set .tx span{display:block;color:var(--fg2);font-size:12.5px;line-height:1.35;margin-top:2px}
+.sw{width:52px;height:30px;border-radius:15px;background:var(--c-highest);border:2px solid var(--outline);position:relative;flex:none;transition:.2s}
+.sw::after{content:"";position:absolute;top:5px;left:5px;width:16px;height:16px;border-radius:50%;background:var(--outline);transition:.2s}
+.sw[aria-checked=true]{background:var(--primary);border-color:var(--primary)}
+.sw[aria-checked=true]::after{left:25px;width:20px;height:20px;top:3px;background:var(--on-primary)}
+.sgm{display:flex;margin:6px 20px 6px;border:1px solid var(--outline);border-radius:20px;overflow:hidden}
+.sgm button{flex:1;padding:10px 0;font-weight:600;font-size:13px;border-left:1px solid var(--outline)}
+.sgm button:first-child{border-left:0}
+.sgm button[aria-pressed=true]{background:var(--primary-c);color:var(--on-primary-c);font-weight:800}
+.sgm.ind button{flex:none;padding:10px 18px}
+/* manga */
+.mhero{display:flex;gap:16px;padding:6px 20px 0}
+.mhero .poster{width:112px;flex:none}
+.chap{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;width:100%;text-align:left;border-bottom:1px solid var(--outline-v)}
+.chap b{font-size:14px}
+.chap small{display:block;color:var(--fg2);font-size:12px;margin-top:2px}
+.chap.read b{color:var(--fg2);font-weight:500}
+.reader{background:#000;color:#fff}
+.rbar{position:absolute;inset:0 0 auto;z-index:6;display:flex;align-items:center;gap:6px;padding:8px 10px;background:linear-gradient(rgba(0,0,0,.8),transparent);transition:transform .25s}
+.rbar.hide{transform:translateY(-110%)}
+.rbar .t{flex:1;min-width:0;line-height:1.15}
+.rbar .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
+.rbar .t span{font-size:11px;opacity:.8}
+.rbar .iconbtn{color:#fff}
+.pg-img{position:relative;aspect-ratio:3/4.2;width:100%;overflow:hidden}
+.pg-img .art{position:absolute;inset:0}
+.bubble{position:absolute;background:#fff;color:#111;border-radius:50%/60%;padding:10px 14px;font-family:'Comic Neue','Comic Sans MS',cursive;font-weight:700;font-size:12px;line-height:1.2;text-align:center;max-width:46%;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.rpill{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:rgba(20,18,26,.85);backdrop-filter:blur(8px);color:#fff;border-radius:18px;padding:7px 16px;font-weight:700;font-size:12px;z-index:6;font-variant-numeric:tabular-nums}
+.rend{padding:36px 24px 70px;text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center}
+/* toast, sheet, offline */
+.toast{position:absolute;left:16px;right:16px;bottom:84px;background:var(--fg);color:var(--bg);padding:13px 16px;border-radius:12px;font-weight:600;font-size:13px;z-index:30;transform:translateY(20px);opacity:0;pointer-events:none;transition:.25s}
+.toast.on{transform:none;opacity:1}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:20;display:flex;align-items:flex-end;animation:f .2s}
+.sheet{background:var(--c-high);width:100%;border-radius:28px 28px 0 0;padding:10px 0 calc(18px + env(safe-area-inset-bottom,0px));max-height:75%;overflow-y:auto}
+.sheet .grab{width:36px;height:4px;border-radius:2px;background:var(--outline);margin:4px auto 10px;opacity:.6}
+.sheet h3{margin:6px 20px 12px;font-size:17px}
+.sheet .opt{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;padding:13px 24px;font-weight:600}
+.sheet .opt[aria-checked=true]{color:var(--primary)}
+.dialog{background:var(--c-high);margin:auto 28px;border-radius:28px;padding:24px;animation:f .2s}
+.dialog h3{margin:0 0 10px;font-size:20px}
+.dialog p{margin:0 0 20px;color:var(--fg2);font-size:14px}
+.dialog .a{display:flex;justify-content:flex-end;gap:8px}
+.dialog .a button{padding:10px 16px;border-radius:20px;font-weight:700;color:var(--primary)}
+.scrim.mid{align-items:center}
+@keyframes f{from{opacity:0}}
+.note{margin:14px 20px;padding:12px 14px;border-radius:14px;background:var(--sec-c);color:var(--secondary);font-size:12px;font-weight:600}
+.sort{display:inline-flex;align-items:center;gap:6px;background:var(--c-high);padding:8px 12px;border-radius:12px;font-weight:600;font-size:13px}
+.sort .ic{width:18px;height:18px}
+.hd{display:flex;justify-content:space-between;align-items:center;padding:14px 20px 8px}
+.hd h2{margin:0;font-size:16px;font-weight:700}
+.about{padding:24px 20px;color:var(--fg2);font-size:12px;line-height:1.6;text-align:center}
+
+/* account, home blocks */
+.av{display:inline-grid;place-items:center;border-radius:50%;color:#fff;font-weight:800;overflow:hidden;flex:none;border:0}
+.av.lg{width:56px;height:56px;font-size:18px;border:2px solid var(--outline-v)}
+.av.sm{width:30px;height:30px;font-size:11px}
+nav.tabs .av.sm{width:26px;height:26px;font-size:10px}
+.acct{margin:0 16px;border:1px solid var(--outline-v);background:var(--c-low);border-radius:22px;padding:12px 14px;display:grid;grid-template-columns:auto 1fr auto;gap:10px 12px;align-items:center;cursor:pointer}
+.an{display:flex;flex-direction:column;gap:4px;min-width:0}
+.an b{font-size:17px;font-weight:800}
+.lv{align-self:flex-start;background:var(--c-high);color:var(--fg2);font-weight:800;font-size:12px;padding:3px 12px;border-radius:12px;display:inline-block}
+.bell{position:relative;width:48px;height:48px;border-radius:50%;background:var(--c-high);display:grid;place-items:center}
+.bell i{position:absolute;top:-2px;right:-2px;min-width:20px;height:20px;border-radius:10px;background:#e5232e;color:#fff;font-style:normal;font-size:11px;font-weight:800;display:grid;place-items:center;padding:0 5px}
+.exp{grid-column:1/-1;display:flex;align-items:center;gap:10px;font-size:12px;font-weight:800;color:var(--fg2)}
+.exp .bar{flex:1;height:8px;border-radius:4px;background:var(--c-highest);overflow:hidden}
+.exp .bar i{display:block;height:100%;min-width:4px;background:var(--primary);border-radius:4px}
+.exp b{color:var(--fg)}
+.qrow2{display:flex;gap:10px;margin:12px 16px 0}
+.srch,.mini{height:48px;border-radius:16px;border:1px solid var(--outline-v);background:var(--c-low);display:flex;align-items:center;gap:10px;padding:0 14px;font-weight:600}
+.srch{flex:1;min-width:0;color:var(--fg2);font-size:14px}
+.mini{font-weight:800;color:var(--fg)}
+.mini .ic{color:#4ade80}
+.clan{margin:12px 16px 0;border:1px solid var(--outline-v);background:var(--c-low);border-radius:16px;padding:8px 10px 10px}
+.ch{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--fg2)}
+.ch .ic{color:#f5b942}
+.cl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:7px;animation:f .3s}
+.ci{display:flex;flex-direction:column;gap:1px;padding:7px 9px;border-radius:12px;background:var(--c);border:1px solid var(--outline-v);min-width:0}
+.ci.r1{border-color:#c9a24a;background:linear-gradient(var(--c),var(--c))}
+.ci.r2{border-color:#9aa3b2}
+.ci.r3{border-color:#b27a4b}
+.ci .rk{font-size:10px;font-weight:800;color:var(--fg2)}
+.ci.r1 .rk{color:#d9a93c}
+.ci .cn{font-weight:800;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ci .clv{font-size:11px;font-weight:700;color:var(--fg2)}
+.prem{margin:10px 16px 0;width:calc(100% - 32px);display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:14px;border:1px solid var(--tertiary);background:var(--c-low);text-align:left}
+.prem .pb{display:inline-flex;align-items:center;gap:6px;background:var(--tertiary);color:var(--bg);font-weight:800;padding:7px 12px;border-radius:10px;font-size:13px}
+.prem .pt3{flex:1;font-size:13px;color:var(--fg2)}
+.prem .pt3 b{color:var(--fg)}
+.sec.sm{padding-top:16px}
+.sec.sm h2{font-size:15px}
+.pillb{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--outline-v);background:var(--c-low);color:var(--fg2)!important;padding:6px 8px 6px 12px;border-radius:16px;font-size:12px!important}
+.lw{flex:none;width:100px;text-align:left}
+.lw .th{position:relative;aspect-ratio:16/9;border-radius:10px;overflow:hidden}
+.lw .th .ph{position:absolute;inset:0}
+.lw .eps{position:absolute;left:6px;bottom:7px;color:#fff;font-weight:800;font-size:11px;text-shadow:0 1px 3px rgba(0,0,0,.7)}
+.lw .pg{position:absolute;left:0;bottom:0;height:3px;background:var(--primary)}
+.lw .lt{display:block;margin-top:5px;font-size:11px;color:var(--fg2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gchat{margin:14px 16px 0;width:calc(100% - 32px);display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:16px;border:1px solid var(--outline-v);background:var(--c-low);text-align:left}
+.gchat .gt{display:inline-flex;align-items:center;gap:5px;background:var(--c-high);color:var(--tertiary);font-weight:800;font-size:12px;padding:6px 10px;border-radius:10px}
+.gchat .gm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px;color:var(--fg2)}
+.gchat .gm b{color:var(--primary)}
+.gchat .gb{font-style:normal;background:#e5232e;color:#fff;font-size:11px;font-weight:800;min-width:20px;height:20px;border-radius:10px;display:grid;place-items:center}
+.rate{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:8px;display:flex;gap:3px;align-items:center}
+.rate .ic{color:#f5b942}
+.fab{position:absolute;right:16px;bottom:84px;width:54px;height:54px;border-radius:50%;background:var(--fg);color:var(--bg);display:grid;place-items:center;box-shadow:0 6px 18px rgba(0,0,0,.35);z-index:15}
+/* timeline + profile */
+.thead{display:flex;gap:14px;align-items:center;padding:12px 12px 0 20px}
+.thx{padding:12px 20px 0}
+.cur{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px 20px}
+.cur>div{display:flex;gap:12px;align-items:center;border:1px solid var(--outline-v);background:var(--c-low);border-radius:18px;padding:12px 16px;color:var(--tertiary)}
+.cur span{display:flex;flex-direction:column;color:var(--fg2);font-size:13px}
+.cur b{color:var(--fg);font-size:18px;line-height:1.1}
+.comp{display:flex;gap:8px}
+.comp input{flex:1;min-width:0;height:40px;border-radius:20px;border:1px solid var(--outline-v);background:var(--c-low);color:var(--fg);font:inherit;padding:0 16px;outline:0}
+.comp input:focus{border-color:var(--primary)}
+.post{display:flex;gap:12px;padding:16px 20px 6px}
+.post .pb{flex:1;min-width:0}
+.ph1{display:flex;align-items:center;gap:8px}
+.ph1 b{font-size:15px}
+.ph1 .tm{margin-left:auto;font-size:12px}
+.vf{color:var(--error);display:inline-flex}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 8px}
+.tg{border:1.5px solid var(--outline);border-radius:14px;padding:2px 10px;font-weight:800;font-size:12px}
+.tg.adm{background:var(--primary-c);border-color:var(--primary-c);color:var(--on-primary-c)}
+.tg.red{background:#e5503a;border-color:#e5503a;color:#fff}
+.ref{display:flex;gap:10px;align-items:center;text-align:left;margin:4px 0}
+.ref b{display:block;font-size:15px;font-weight:600}
+.ref span span{color:var(--fg2);font-size:13px}
+.pt2{margin:6px 0 10px;font-size:15px;line-height:1.5;overflow-wrap:anywhere}
+.media{position:relative;aspect-ratio:3/2;border-radius:16px;overflow:hidden;max-width:100%}
+.plb{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:56px;height:56px;border-radius:50%;background:#fff;color:#222;display:grid;place-items:center}
+.rep{color:var(--tertiary);font-weight:700;margin:10px 0 14px}
+.camb{position:absolute;right:-2px;top:-2px;width:40px;height:40px;border-radius:50%;background:#2d8cf0;color:#fff;display:grid;place-items:center}
+.hearts{position:absolute;left:50%;bottom:-12px;transform:translateX(-50%);display:flex;gap:6px;align-items:center;background:var(--c-high);border:1px solid var(--outline-v);padding:4px 16px;border-radius:20px;color:#ff4d8d;font-weight:800}
+.hearts b{color:var(--fg)}
+.pst{display:grid;grid-template-columns:repeat(4,1fr);padding:22px 20px 16px;text-align:center;color:var(--fg2);font-size:13px}
+.pst div{display:flex;flex-direction:column;border-left:1px solid var(--outline-v)}
+.pst div:first-child{border-left:0}
+.pst b{color:var(--fg);font-size:22px;font-weight:800}
+.pet{border:1px solid #c9a24a;background:rgba(201,162,74,.14);color:#e0b13c;font-weight:800;padding:12px 24px;border-radius:24px}
+.pitem{padding:12px 20px}
+.mp{display:flex;align-items:center;gap:10px;margin-top:8px}
+.pbtn{width:26px;height:26px;border-radius:50%;background:var(--fg2);color:var(--bg);display:grid;place-items:center}
+.mb{flex:1;height:3px;background:var(--outline-v);border-radius:2px;overflow:hidden}
+.mb i{display:block;height:100%;background:var(--primary)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="app" id="app">
+  <div class="view" id="view" tabindex="-1"></div>
+  <nav class="tabs" id="tabs" aria-label="Navigasi utama"></nav>
+  <div id="fabs"></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</div>
+
+<script>
+/* ---------- icons (Material-style paths) ---------- */
+const P={
+home:'M12 3 3 10.5V21h6v-6h6v6h6V10.5z',homeO:'M12 5.7l6 5V19h-2v-6H8v6H6v-8.3zM12 3 4 9.7V21h6v-6h4v6h6V9.7z',
+explore:'M12 2a10 10 0 100 20 10 10 0 000-20zm3.5 6.5-2 5-5 2 2-5z',
+book:'M21 5c-1.1-.35-2.3-.5-3.5-.5-1.9 0-4.1.4-5.5 1.5-1.4-1.1-3.6-1.5-5.5-1.5S2.9 4.9 2 5.5v14.7c0 .3.3.5.6.5.1 0 .2 0 .3-.1 1.1-.5 2.9-.9 4.6-.9 1.9 0 4.1.4 5.5 1.5 1.3-.8 3.8-1.5 5.5-1.5 1.7 0 3.5.4 4.6.9.1 0 .2.1.3.1.3 0 .6-.2.6-.5V5.5C21.900 5.350 21.500 5.150 21 5z',
+cal:'M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2zm0 16H5V10h14zM5 8V6h14v2z',
+lib:'M4 6H2v14a2 2 0 002 2h14v-2H4zm16-4H8a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V4a2 2 0 00-2-2zm-8 12.500v-9l6 4.500z',
+search:'M15.500 14h-.8l-.3-.3A6.500 6.500 0 109.500 16a6.470 6.470 0 004.200-1.600l.3.300v.8l5 5 1.500-1.500zm-6 0a4.500 4.500 0 110-9 4.500 4.500 0 010 9z',
+gear:'M19.140 12.940a7.800 7.800 0 000-1.880l2.030-1.580a.5.5 0 00.120-.610l-1.920-3.320a.5.5 0 00-.590-.220l-2.390.960a7 7 0 00-1.620-.940l-.360-2.540A.480.480 0 0013.930 2h-3.840a.480.480 0 00-.480.410l-.360 2.540a7 7 0 00-1.620.940l-2.390-.960a.480.480 0 00-.590.220L2.730 8.870a.480.480 0 00.120.610l2.030 1.580a7.800 7.800 0 000 1.880l-2.030 1.580a.480.480 0 00-.120.610l1.920 3.320c.120.220.370.290.590.220l2.390-.960c.500.380 1.030.700 1.620.940l.360 2.540c.050.240.260.410.480.410h3.840c.240 0 .440-.170.480-.410l.360-2.540a7 7 0 001.620-.940l2.390.960c.220.080.470 0 .590-.220l1.920-3.320a.480.480 0 00-.120-.610zM12 15.600A3.600 3.600 0 1115.600 12 3.600 3.600 0 0112 15.600z',
+play:'M8 5v14l11-7z',pause:'M6 19h4V5H6zm8-14v14h4V5z',
+back:'M20 11H7.830l5.590-5.590L12 4l-8 8 8 8 1.410-1.410L7.830 13H20z',
+plus:'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z',check:'M9 16.200 4.800 12l-1.400 1.400L9 19 21 7l-1.400-1.400z',
+heart:'M16.500 3c-1.740 0-3.410.810-4.500 2.090C10.910 3.810 9.240 3 7.500 3 4.420 3 2 5.420 2 8.500c0 3.780 3.400 6.860 8.550 11.540L12 21.350l1.450-1.320C18.600 15.360 22 12.280 22 8.500 22 5.420 19.580 3 16.500 3z',
+heartO:'M16.500 3c-1.740 0-3.410.810-4.500 2.090C10.910 3.810 9.240 3 7.500 3 4.420 3 2 5.420 2 8.500c0 3.780 3.400 6.860 8.550 11.540L12 21.350l1.450-1.320C18.600 15.360 22 12.280 22 8.500 22 5.420 19.580 3 16.500 3zm-4.400 15.550-.1.100-.1-.1C7.140 14.240 4 11.390 4 8.500 4 6.500 5.500 5 7.500 5c1.540 0 3.040.990 3.570 2.360h1.870C13.460 5.990 14.960 5 16.500 5c2 0 3.500 1.500 3.500 3.500 0 2.890-3.140 5.740-7.900 10.050z',
+dl:'M19 9h-4V3H9v6H5l7 7zM5 18v2h14v-2z',
+prev:'M6 6h2v12H6zm3.500 6 8.500 6V6z',next:'M6 18l8.500-6L6 6zM16 6v12h2V6z',
+rew:'M11 18V6l-8.500 6zm.5-6 8.500 6V6z',fwd:'M4 18l8.500-6L4 6zm9-12v12l8.500-6z',
+full:'M7 14H5v5h5v-2H7zm-2-4h2V7h3V5H5zm12 7h-3v2h5v-5h-2zM14 5v2h3v3h2V5z',
+pip:'M19 7h-8v6h8zm4-4H1v18h22zm-2 16.010H3V4.980h18z',
+close:'M19 6.410 17.590 5 12 10.590 6.410 5 5 6.410 10.590 12 5 17.590 6.410 19 12 13.410 17.590 19 19 17.590 13.410 12z',
+dice:'M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zM7.500 18a1.500 1.500 0 110-3 1.500 1.500 0 010 3zm0-9a1.500 1.500 0 110-3 1.500 1.500 0 010 3zm4.500 4.500a1.500 1.500 0 110-3 1.500 1.500 0 010 3zm4.500 4.500a1.500 1.500 0 110-3 1.500 1.500 0 010 3zm0-9a1.500 1.500 0 110-3 1.500 1.500 0 010 3z',
+sort:'M3 18h6v-2H3zM3 6v2h18V6zm0 7h12v-2H3z',drop:'M7 10l5 5 5-5z',
+eye:'M12 4.500C7 4.500 2.730 7.610 1 12c1.730 4.390 6 7.500 11 7.500s9.270-3.110 11-7.500c-1.730-4.390-6-7.500-11-7.500zM12 17a5 5 0 110-10 5 5 0 010 10zm0-8a3 3 0 100 6 3 3 0 000-6z',
+clock:'M11.990 2C6.470 2 2 6.480 2 12s4.470 10 9.990 10C17.520 22 22 17.520 22 12S17.520 2 11.990 2zM12 20a8 8 0 110-16 8 8 0 010 16zm.5-13H11v6l5.250 3.150.75-1.230-4.500-2.670z',
+moon:'M12 3a9 9 0 109 9c0-.46-.04-.92-.1-1.360a5.390 5.390 0 01-4.400 2.260 5.400 5.400 0 01-3.140-9.800c-.44-.06-.90-.10-1.360-.10z',
+palette:'M12 3a9 9 0 000 18 1.500 1.500 0 001.110-2.500c-.360-.400-.560-.900-.560-1.400a1.500 1.500 0 011.500-1.500H16a5 5 0 005-5c0-4.420-4.030-7.600-9-7.600zM6.500 12a1.500 1.500 0 110-3 1.500 1.500 0 010 3zm3-4a1.500 1.500 0 110-3 1.500 1.500 0 010 3zm5 0a1.500 1.500 0 110-3 1.500 1.500 0 010 3zm3 4a1.500 1.500 0 110-3 1.500 1.500 0 010 3z',
+hd:'M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zm-8 12H9.500v-2h-2v2H6V9h1.500v2.500h2V9H11zm7-1.500a1.500 1.500 0 01-1.500 1.500h-3V9h3A1.500 1.500 0 0118 10.500zm-1.500-3h-1.500v3h1.500z',
+bars:'M5 9.200h3V19H5zM10.600 5h2.800v14h-2.800zm5.600 8H19v6h-2.800z',
+trans:'M12.870 15.070l-2.540-2.510.03-.03A17.520 17.520 0 0014.070 6H17V4h-7V2H8v2H1v2h11.170C11.500 7.920 10.440 9.750 9 11.350 8.070 10.320 7.300 9.190 6.690 8h-2c.730 1.630 1.730 3.170 2.980 4.560l-5.090 5.020L4 19l5-5 3.110 3.110zM18.500 10h-2L12 22h2l1.120-3h4.750L21 22h2zm-2.620 7 1.620-4.330L19.120 17z',
+info:'M11 7h2v2h-2zm0 4h2v6h-2zm1-9a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16z',
+trash:'M6 19a2 2 0 002 2h8a2 2 0 002-2V7H6zM19 4h-3.500l-1-1h-5l-1 1H5v2h14z',
+bell:'M12 22a2 2 0 002-2h-4a2 2 0 002 2zm6-6v-5c0-3.070-1.640-5.640-4.500-6.320V4a1.500 1.500 0 00-3 0v.68C7.630 5.360 6 7.920 6 11v5l-2 2v1h16v-1z',
+shield:'M12 1 3 5v6c0 5.550 3.840 10.740 9 12 5.160-1.260 9-6.450 9-12V5z',
+wifi:'M1 9l2 2c4.970-4.970 13.030-4.970 18 0l2-2C16.930 2.930 7.080 2.930 1 9zm8 8 3 3 3-3a4.240 4.240 0 00-6 0zm-4-4 2 2a7.070 7.070 0 0110 0l2-2C15.140 9.140 8.870 9.140 5 13z',
+cloud:'M19.350 10.040A7.490 7.490 0 0012 4C9.110 4 6.600 5.640 5.350 8.040A5.994 5.994 0 000 14c0 3.310 2.690 6 6 6h13c2.760 0 5-2.240 5-5 0-2.640-2.050-4.780-4.650-4.960z',
+lock:'M18 8h-1V6a5 5 0 00-10 0v2H6a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V10a2 2 0 00-2-2zM9 6a3 3 0 016 0v2H9z',
+list:'M3 13h2v-2H3zm0 4h2v-2H3zm0-8h2V7H3zm4 4h14v-2H7zm0 4h14v-2H7zM7 7v2h14V7z',
+};
+Object.assign(P,{
+trophy:'M19 5h-2V3H7v2H5a2 2 0 00-2 2v1c0 2.550 1.920 4.630 4.390 4.940A5.010 5.010 0 0011 15.900V19H7v2h10v-2h-4v-3.100a5.010 5.010 0 003.610-2.960C19.080 12.630 21 10.550 21 8V7a2 2 0 00-2-2zM5 8V7h2v3.820C5.840 10.400 5 9.300 5 8zm14 0c0 1.300-.840 2.400-2 2.820V7h2z',
+user:'M12 12a4 4 0 100-8 4 4 0 000 8zm0 2c-2.670 0-8 1.340-8 4v2h16v-2c0-2.660-5.330-4-8-4z',
+users:'M16 11a3 3 0 100-6 3 3 0 000 6zm-8 0a3 3 0 100-6 3 3 0 000 6zm0 2c-2.330 0-7 1.170-7 3.500V19h14v-2.500C15 14.170 10.330 13 8 13zm8 0c-.290 0-.620.020-.970.050 1.160.840 1.970 1.970 1.970 3.450V19h6v-2.500c0-2.330-4.670-3.500-7-3.500z',
+chat:'M20 2H4a2 2 0 00-2 2v18l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2z',
+send:'M2.010 21 23 12 2.010 3 2 10l15 2-15 2z',
+star:'M12 17.270 18.180 21l-1.640-7.030L22 9.240l-7.190-.610L12 2 9.190 8.630 2 9.240l5.460 4.730L5.820 21z',
+game:'M21 6H3a2 2 0 00-2 2v8a2 2 0 002 2h18a2 2 0 002-2V8a2 2 0 00-2-2zm-10 7H8v3H6v-3H3v-2h3V8h2v3h3zm4.500 2a1.500 1.500 0 110-3 1.500 1.500 0 010 3zm4-3a1.500 1.500 0 110-3 1.500 1.500 0 010 3z',
+chev:'M10 6 8.590 7.410 13.170 12l-4.580 4.590L10 18l6-6z',
+crown:'M5 16 3 5l5.500 5L12 4l3.500 6L21 5l-2 11zm14 3a1 1 0 01-1 1H6a1 1 0 01-1-1v-1h14z',
+verified:'M23 12l-2.440-2.790.340-3.690-3.610-.820-1.890-3.200L12 2.960 8.600 1.500 6.710 4.690 3.100 5.500l.340 3.700L1 12l2.440 2.790-.340 3.700 3.610.820L8.600 22.500l3.400-1.470 3.400 1.460 1.890-3.190 3.610-.820-.340-3.690zm-12.910 4.720l-3.800-3.810 1.480-1.480 2.320 2.330 5.850-5.870 1.480 1.480z',
+more:'M12 8a2 2 0 100-4 2 2 0 000 4zm0 2a2 2 0 100 4 2 2 0 000-4zm0 6a2 2 0 100 4 2 2 0 000-4z',
+cam:'M12 15.200a3.200 3.200 0 100-6.400 3.200 3.200 0 000 6.400zM9 2 7.170 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2h-3.170L15 2z',
+gem:'M12 2 3 9l9 13 9-13zm0 3.500L16.500 9h-9z',key:'M12.650 10A5.990 5.990 0 007 6a6 6 0 000 12 5.990 5.990 0 005.650-4H17v4h4v-4h2v-4zM7 14a2 2 0 110-4 2 2 0 010 4z'
+});
+const ic=(n,s)=>`<svg class="ic"${s?` style="width:${s}px;height:${s}px"`:''} viewBox="0 0 24 24" aria-hidden="true"><path d="${P[n]}"/></svg>`;
+
+/* ---------- mock catalogue (sample data, no network) ---------- */
+const D=['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
+const A=[
+['mushen','Mushen Ji','Mu Shen Ji','ONA',2026,'ONGOING',['Action','Adventure','Fantasy','Historical','Martial Arts'],'Sparkley Key Animation Studio','2024-10-27',298400,3900,107,1,'11:11','Di Desa Lansia Cacat, hiduplah sembilan lansia dengan asal-usul yang tak terduga, dan pemuda bernama Qin Mu yang mereka besarkan. Suatu hari, sapi-sapi yang digembalakan Qin Mu membawa kabar tentang dunia luar yang jauh lebih luas dari desa mereka. Petualangan pun dimulai, menembus pegunungan dan reruntuhan kuno.'],
+['onepiece','One Piece','ワンピース','Series',2026,'ONGOING',['Action','Adventure','Comedy','Fantasy'],'Toei Animation','1999-10-20',1240000,52000,1160,6,'09:30','Monkey D. Luffy dan kru Topi Jerami berlayar menyusuri Grand Line untuk menemukan harta karun legendaris, One Piece, dan menjadi Raja Bajak Laut.'],
+['blackclover','Black Clover','ブラッククローバー','Series',2021,'FINISHED',['Action','Comedy','Fantasy'],'Pierrot','2017-10-03',812000,21000,170,-1,'','Asta lahir tanpa sihir di dunia yang memujanya. Dengan grimoire berlapis lima daun, ia bertekad menjadi Kaisar Sihir.'],
+['naruto','Naruto: Shippuuden','ナルト 疾風伝','Series',2025,'FINISHED',['Action','Adventure','Martial Arts'],'Pierrot','2007-02-15',1010000,34000,500,-1,'','Dua setengah tahun setelah latihan, Naruto Uzumaki kembali ke Konoha dan menghadapi Akatsuki.'],
+['boruto','Boruto: Naruto Next Generations','ボルト','Series',2025,'FINISHED',['Action','Adventure','Fantasy'],'Pierrot','2017-04-05',390000,9800,293,-1,'','Putra Naruto, Boruto, mencari jalannya sendiri di bayang-bayang sang Hokage ketujuh.'],
+['kaoru','Kaoru Hana wa Rin to Saku','薫る花は凛と咲く','Series',2025,'FINISHED',['Romance','Drama','Slice of Life'],'CloverWorks','2025-07-19',187000,6400,13,-1,'','Dua siswa dari sekolah yang bertetangga namun berseteru perlahan saling mengenal di sebuah kafe kecil.'],
+['bleach','Bleach: Thousand-Year Blood War','ブリーチ 千年血戦篇','Series',2025,'ONGOING',['Action','Supernatural','Shounen'],'Pierrot','2022-10-11',655000,18500,40,2,'23:30','Ichigo Kurosaki dan para Shinigami menghadapi invasi Quincy yang dipimpin Yhwach.'],
+['yinian','Yi Nian Yong Heng','一念永恒','ONA',2026,'ONGOING',['Action','Adventure','Fantasy','Martial Arts'],'Foch Films','2020-12-30',83100,1900,120,1,'20:15','Bai Xiaochun, pemuda licik yang takut mati, memasuki sekte kultivasi demi hidup abadi.'],
+['kyouran','Kyouran Reijou Nia Liston','狂乱令嬢ニア・リストン','Series',2026,'ONGOING',['Action','Fantasy','Supernatural'],'Studio Mir','2026-10-05',38200,1200,12,1,'20:07','Nia Liston, putri bangsawan yang dijuluki gila, bereinkarnasi dengan ingatan seorang pembunuh bayaran.'],
+['tunshi','Tunshi Xingkong 4th Season','吞噬星空 4','ONA',2026,'ONGOING',['Action','Adventure','Sci-Fi'],'Wonder Cat','2020-07-11',123200,3100,160,1,'16:01','Luo Feng menjelajahi bintang-bintang dalam perang antarperadaban kosmik.'],
+['tsuihou','Tsuihou sareta Tensei Juukishi wa Game Chishiki de Musou suru','追放された転生重騎士','Series',2026,'ONGOING',['Action','Adventure','Fantasy','Isekai'],'Studio Gokumi','2026-10-06',318600,5200,12,1,'22:00','Seorang ksatria berat yang dibuang dari party memakai pengetahuan gimnya untuk menaklukkan dunia baru.'],
+['ghost','Ghost Meets Gal!','ゴーストミーツギャル','Series',2026,'ONGOING',['Music','Comedy','Supernatural'],'Doga Kobo','2026-10-02',7700,430,12,1,'11:11','Hantu musisi bertemu gadis gal yang tak takut apa pun, lalu membentuk band dadakan.'],
+['mahou','Mahou Shoujo Ikusei Keikaku: Restart','魔法少女育成計画 Restart','Series',2026,'ONGOING',['Action','Fantasy','Shoujo'],'Lerche','2026-10-04',2800,210,12,1,'01:18','Gadis-gadis penyihir dipilih lewat game ponsel, namun hanya sebagian yang boleh bertahan.'],
+['jujutsu','Jujutsu Kaisen','呪術廻戦','Series',2026,'ONGOING',['Action','Supernatural','Shounen'],'MAPPA','2020-10-03',905000,41000,59,3,'00:26','Yuji Itadori menelan jari terkutuk dan masuk ke dunia para penyihir jujutsu.'],
+['frieren','Sousou no Frieren','葬送のフリーレン','Series',2026,'ONGOING',['Adventure','Drama','Fantasy'],'Madhouse','2023-09-29',720000,38000,38,4,'23:00','Setelah mengalahkan Raja Iblis, penyihir elf Frieren belajar memahami arti waktu manusia.'],
+['spy','Spy x Family','スパイファミリー','Series',2025,'FINISHED',['Action','Comedy','Slice of Life'],'Wit Studio','2022-04-09',690000,29000,37,-1,'','Mata-mata, pembunuh bayaran, dan telepat berpura-pura menjadi keluarga demi misi rahasia.'],
+['dandadan','Dandadan','ダンダダン','Series',2026,'ONGOING',['Action','Comedy','Supernatural'],'Science SARU','2024-10-04',510000,22000,24,5,'00:00','Momo dan Okarun saling membuktikan keberadaan hantu dan alien, lalu mengalami keduanya.'],
+['kimetsu','Kimetsu no Yaiba: Infinity Castle','鬼滅の刃 無限城編','Film',2025,'FINISHED',['Action','Fantasy','Historical'],'Ufotable','2025-07-18',402000,17000,1,-1,'','Para Pilar dan Tanjiro terjun ke markas Muzan di Benteng Tak Terbatas.'],
+['solo','Solo Leveling','俺だけレベルアップな件','Series',2026,'ONGOING',['Action','Adventure','Fantasy'],'A-1 Pictures','2024-01-07',860000,36000,25,6,'23:00','Sung Jinwoo, pemburu terlemah, mendapat sistem rahasia untuk naik level tanpa batas.'],
+['haikyuu','Haikyuu!! The Dumpster Battle','ハイキュー!! ゴミ捨て場の決戦','Film',2024,'FINISHED',['Sports','Comedy','Drama'],'Production I.G','2024-02-16',280000,11000,1,-1,'','Karasuno melawan Nekoma dalam pertandingan yang telah lama dinanti.'],
+['vinland','Vinland Saga: Live Tour','ヴィンランド・サガ','Live Action',2024,'FINISHED',['Adventure','Historical','Drama'],'Wit Studio','2024-06-01',54000,1200,3,-1,'','Dokumentasi pentas panggung adaptasi Vinland Saga.'],
+['ona1','Pocket Monsters Short','ポケモン','ONA',2025,'FINISHED',['Adventure','Comedy'],'OLM','2025-03-01',99000,2500,10,-1,'','Kumpulan cerita pendek petualangan para pelatih.'],
+].map(r=>({id:r[0],title:r[1],jp:r[2],type:r[3],year:r[4],status:r[5],genres:r[6],studio:r[7],aired:r[8],views:r[9],favs:r[10],eps:r[11],day:r[12],time:r[13],syn:r[14]}));
+const byId=Object.fromEntries(A.map(a=>[a.id,a]));
+const GENRES=['Action','Adventure','Comedy','Drama','Fantasy','Romance','Sci-Fi','Supernatural','Isekai','Martial Arts','Music','Sports','Slice of Life','Historical','Shounen','Shoujo'];
+const M=[
+['solora','Solo Reborn Chronicle','Manhwa','Berjalan','Fantasi',['Action','Fantasy','Isekai'],'Chugong','2024',1280,'Shinigami','Seorang pemburu peringkat E bangkit kembali dengan ingatan masa depan dan memburu gerbang yang membinasakan umat manusia.'],
+['tower','Tower of Many Gods','Manhwa','Berjalan','Aksi',['Action','Adventure','Fantasy'],'SIU','2023',640,'Shinigami','Bam memanjat menara tak berujung demi gadis yang ia cintai, menghadapi ujian di setiap lantai.'],
+['kingdom','Kingdom of Ash','Manga','Berjalan','Aksi',['Action','Historical'],'Y. Hara','2012',790,'MangaDex','Dua yatim piatu bermimpi menjadi jenderal agung di era perang antarnegara.'],
+['sweetrain','Hujan di Kafe Senja','Manga','Tamat','Romansa',['Romance','Drama','Slice of Life'],'Rin Aoki','2019',92,'Komiku','Hubungan barista pemalu dengan pelanggan tetap yang selalu datang saat hujan.'],
+['hunt','Hunter of Ten Gates','Manhwa','Berjalan','Fantasi',['Action','Fantasy','Supernatural'],'DUBU','2021',410,'WEBTOON','Sepuluh gerbang terbuka di kota, dan hanya satu keluarga yang bisa menutupnya.'],
+['kuro','Kuro no Shounen','Manga','Hiatus','Horor',['Horror','Supernatural','Mystery'],'T. Mori','2016',215,'MangaDex','Kisah anak laki-laki yang bisa melihat bayangan hitam di balik setiap kematian.'],
+['isekai','Isekai Chef Kitchen','Manga','Berjalan','Isekai',['Isekai','Comedy','Slice of Life'],'M. Fuji','2022',146,'Komiku','Koki restoran keluarga terseret ke dunia lain dan membuka dapur pertamanya di sana.'],
+['neon','Neon Samurai 2099','Manhwa','Tamat','Aksi',['Action','Sci-Fi'],'Han Seol','2018',188,'Shinigami','Samurai siber menjaga kota tinggi dari perusahaan yang menjual ingatan.'],
+['mons','Monster Mama','Manga','Berjalan','Komedi',['Comedy','Fantasy'],'K. Sora','2023',64,'KakaManga','Seorang ibu tunggal membesarkan tiga anak monster di apartemen sempit.'],
+['petal','Sakura Petal Letters','Manga','Tamat','Romansa',['Romance','Drama'],'N. Haru','2015',57,'Komiku','Surat tanpa nama muncul di loker tiap musim semi selama tiga tahun.'],
+].map(r=>({id:r[0],title:r[1],type:r[2],status:r[3],cat:r[4],genres:r[5],author:r[6],year:r[7],chaps:r[8],src:r[9],syn:r[10]}));
+const mById=Object.fromEntries(M.map(m=>[m.id,m]));
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function hue(s){let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))>>>0;return h%360}
+function art(id,ang){const h=hue(id),h2=(h+55+hue(id+'x')%60)%360;return `background:radial-gradient(circle at 25% 20%,hsl(${h2} 80% 62%) 0,transparent 55%),linear-gradient(${ang||155}deg,hsl(${h} 70% 38%),hsl(${(h+300)%360} 60% 16%))`}
+function initials(t){return t.split(/[\s:]+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase()}
+function poster(a,o={}){return `<div class="poster" style="${art(a.id)}"><span class="ph" aria-hidden="true">${esc(initials(a.title))}</span>${o.live&&a.status==='ONGOING'?'<span class="badge"><i></i>Tayang</span>':''}${o.new?'<span class="badge new">BARU</span>':''}${o.nw?'<span class="badge new" style="left:0;border-radius:0 8px 8px 0">New</span>':''}${o.rate?`<span class="rate">${ic('star',12)}${rate(a)}</span>`:''}${o.title?`<span class="pt">${esc(a.title)}</span>`:''}</div>`}
+function rate(a){return (6+hue(a.id)%29/10).toFixed(2).replace('.',',')}
+const VERSION='1.0.0';
+function fmt(n){return n>=1e9?(n/1e9).toFixed(1).replace('.',',')+' M':n>=1e6?(n/1e6).toFixed(1).replace('.',',')+' jt':n>=1e3?(n/1e3).toFixed(1).replace('.',',')+' rb':String(n)}
+const sName=s=>s==='ONGOING'?'Tayang':s==='FINISHED'?'Tamat':'Segera';
+const todayIdx=(new Date().getDay()+6)%7;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),2400)}
+
+/* ---------- persisted state ---------- */
+const KEY='kagenime-preview-v1';
+const defaults={theme:'dark',amoled:false,dyn:false,q:'720p',mq:'follow',auto:true,pip:true,bgaudio:false,skipop:false,jump:true,notify:true,notifyRel:false,wifi:true,mature:false,fav:['onepiece','tsuihou'],mfav:['solora'],
+ hist:[{id:'mushen',ep:1,p:34}],notif:6,exp:1,myPosts:[],dl:{},read:{},recent:[]};
+let S=JSON.parse(JSON.stringify(defaults));
+try{const r=localStorage.getItem(KEY);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function applyTheme(){const r=document.documentElement;if(S.theme==='system')r.removeAttribute('data-theme');else r.setAttribute('data-theme',S.theme);r.dataset.amoled=S.amoled?'1':'0'}
+applyTheme();
+
+/* ---------- router ---------- */
+const TABS=[['home','Beranda','home'],['explore','Jelajah','explore'],['manga','Manga','book'],['schedule','Jadwal','cal'],['timeline','Timeline','user']];
+let timers=[];
+function clearTimers(){timers.forEach(clearInterval);timers=[]}
+function route(){
+  clearTimers();
+  const h=(location.hash||'#home').slice(1);const [name,...rest]=h.split('-');
+  const arg=rest.join('-');
+  const tabNames=TABS.map(t=>t[0]);
+  const cur=tabNames.includes(name)?name:(name==='mdetail'||name==='read'?'manga':name==='library'||name==='profile'?'timeline':'home');
+  const full=['play','read'].includes(name);
+  $('#tabs').style.display=full?'none':'flex';
+  $('#tabs').innerHTML=TABS.map(([k,l,i])=>`<button data-go="${k}" aria-current="${k===cur}"><span class="pill">${i==='user'?`<span class="av sm" style="${art('seika')}">SK</span>`:ic(i)}</span>${l}</button>`).join('');
+  const old=$('#view');const v=old.cloneNode(false);old.replaceWith(v);v.className='view';$('#fabs').innerHTML='';
+  const R={home:Home,explore:Explore,manga:Manga,schedule:Schedule,library:Library,timeline:Timeline,profile:Profile,detail:Detail,play:Player,settings:Settings,mdetail:MDetail,read:Reader}[name]||Home;
+  v.innerHTML='';R(v,arg);
+  if(!['home','explore','manga','schedule','library'].includes(name)||true)v.scrollTop=0;
+}
+window.addEventListener('hashchange',route);
+function go(h){location.hash=h}
+const back=()=>{if(history.length>1)history.back();else go('home')};
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches('[role=link][data-go]'))go(e.target.dataset.go)});
+document.addEventListener('click',e=>{
+  if(e.target.closest('[data-bell]')){e.stopPropagation();sheet('Notifikasi ('+(S.notif||0)+')',NOTIFS,'',()=>{});S.notif=0;save();const b=document.querySelector('.bell i');if(b)b.remove();return}
+  const c=e.target.closest('[data-chat]');if(c){chatSheet();return}
+  const t=e.target.closest('[data-toast]');if(t){toast(t.dataset.toast);return}
+  const g=e.target.closest('[data-go]');if(g){save();go(g.dataset.go);return}
+  const b=e.target.closest('[data-back]');if(b){save();back();return}
+});
+
+/* ---------- sheets / dialogs ---------- */
+function sheet(title,opts,sel,pick){
+  const s=document.createElement('div');s.className='scrim';
+  s.innerHTML=`<div class="sheet" role="dialog" aria-label="${esc(title)}"><div class="grab"></div><h3>${esc(title)}</h3>${opts.map(([v,l])=>`<button class="opt" role="radio" aria-checked="${v===sel}" data-v="${esc(v)}">${esc(l)}${v===sel?ic('check',20):''}</button>`).join('')}</div>`;
+  s.addEventListener('click',e=>{const o=e.target.closest('.opt');if(o){pick(o.dataset.v);s.remove()}else if(e.target===s)s.remove()});
+  $('#app').appendChild(s)
+}
+function dialog(title,body,ok,cb){
+  const s=document.createElement('div');s.className='scrim mid';
+  s.innerHTML=`<div class="dialog" role="alertdialog"><h3>${esc(title)}</h3><p>${esc(body)}</p><div class="a"><button data-x>Batal</button><button data-ok>${esc(ok)}</button></div></div>`;
+  s.addEventListener('click',e=>{if(e.target.closest('[data-ok]')){cb();s.remove()}else if(e.target.closest('[data-x]')||e.target===s)s.remove()});
+  $('#app').appendChild(s)
+}
+
+/* ---------- shared social data ---------- */
+const CLANS=[['Nolep Family',226,2076],['Xcellence',220,1840],['YURI NEE',215,1622],['FIVE KAGE',211,1410],['INTROVERT',209,1388],['Senpai Squad',204,1210],['Otaku Hub',201,1175],['Sakura Guild',198,990],['Isekai Crew',196,954],['Ronin ID',190,901],['Moonlight',187,860],['Kitsune',183,812],['Shadow Garden',180,790],['Akatsuki ID',176,744],['Naga Kuning',171,701]];
+const CHAT=[['Rin','ada yang nonton Frieren ep 7?'],['Dika','jadwal hari ini udah keluar belum'],['Mika','gas rame-rame bareng'],['Void nour','Like and add prem 1h']];
+const NOTIFS=[['n1','Episode baru: Sousou no Frieren Episode 8'],['n2','Solo Leveling tayang malam ini pukul 23:00'],['n3','Ada 3 balasan baru di Timeline kamu'],['n4','Rin mengajakmu bergabung di clan Senpai Squad'],['n5','Jadwal minggu ini sudah diperbarui'],['n6','Selamat datang di Kagenime '+VERSION]];
+const meBar=()=>`<span class="exp"><em>EXP</em><span class="bar"><i style="width:${S.exp/15}%"></i></span><b>${S.exp} / 1.500</b></span>`;
+function acctCard(){return `<div class="acct" data-go="profile" role="link" tabindex="0" aria-label="Buka profil"><span class="av lg" style="${art('seika')}">SK</span><span class="an"><b>Seika Kageen</b><span class="lv">Lvl. 1</span></span><button class="bell" data-bell aria-label="Notifikasi">${ic('bell',24)}${S.notif?`<i>${S.notif}</i>`:''}</button>${meBar()}</div>`}
+function chatSheet(){
+  const sc=document.createElement('div');sc.className='scrim';
+  sc.innerHTML=`<div class="sheet" style="height:70%;display:flex;flex-direction:column" role="dialog" aria-label="Global chat"><div class="grab"></div><h3>Global</h3><div id="ms" style="flex:1;overflow-y:auto;padding:0 20px"></div><form id="cf2" class="comp" style="padding:12px 20px 0"><input id="ci2" maxlength="120" placeholder="Tulis pesan…" autocomplete="off" aria-label="Pesan"><button class="btn pri" style="flex:none;height:40px;padding:0 16px;border-radius:20px" aria-label="Kirim">${ic('send',18)}</button></form></div>`;
+  const draw=()=>{const m=sc.querySelector('#ms');m.innerHTML=CHAT.map(([u,t])=>`<div style="display:flex;gap:10px;padding:8px 0"><span class="av" style="${art(u)};width:34px;height:34px;font-size:12px">${initials(u)}</span><div><b style="color:var(--primary)">${esc(u)}</b><div>${esc(t)}</div></div></div>`).join('');m.scrollTop=m.scrollHeight};
+  sc.addEventListener('click',e=>{if(e.target===sc){sc.remove();route()}});
+  sc.addEventListener('submit',e=>{e.preventDefault();const i=sc.querySelector('#ci2');if(i.value.trim()){CHAT.push(['Seika Kageen',i.value.trim()]);i.value='';draw()}});
+  $('#app').appendChild(sc);draw();
+}
+let clanI=0;
+function Home(v){
+  const ong=A.filter(a=>a.status==='ONGOING');
+  const latest=ong.slice(0,10),today=A.filter(a=>a.day===todayIdx),airing=[...ong].sort((a,b)=>b.views-a.views);
+  const cont=S.hist.map(h=>({a:byId[h.id],h})).filter(x=>x.a);
+  const lastMsg=CHAT[CHAT.length-1];
+  v.innerHTML=`<div style="padding-top:8px">${acctCard()}</div>
+  <div class="qrow2"><button class="srch" data-go="explore">${ic('search')}<span>Cari Anime Di Sini</span></button><button class="mini" data-toast="Minigame tersedia di aplikasi Android">${ic('game',22)}Minigame</button></div>
+  <section class="clan"><div class="ch">${ic('trophy',15)}TOP CLAN${ic('chev',15)}</div><div class="cl" id="cl"></div></section>
+  <div class="dots" id="cd" style="margin:8px 0 2px"></div>
+  <button class="prem" data-toast="Premium belum tersedia di versi preview"><span class="pb">${ic('crown',17)}Premium</span><span class="pt3">Mulai <b>Rp12.000</b>, tanpa iklan</span>${ic('chev',22)}</button>
+  ${cont.length?`<div class="sec sm"><h2>Terakhir Ditonton</h2><button class="pillb" data-go="profile">Lihat Lainnya${ic('chev',16)}</button></div>
+  <div class="row">${cont.map(({a,h})=>`<button class="lw" data-go="play-${a.id}-${h.ep}"><div class="th"><div class="ph" style="${art(a.id+h.ep,120)}"></div><span class="eps">Eps ${h.ep}</span><i class="pg" style="width:${h.p}%"></i></div><span class="lt">${esc(a.title)}</span></button>`).join('')}</div>`:''}
+  <button class="gchat" data-chat><span class="gt">${ic('chat',16)}Global</span><span class="av" style="${art(lastMsg[0])};width:30px;height:30px;font-size:11px">${initials(lastMsg[0])}</span><span class="gm"><b>${esc(lastMsg[0])}</b>: ${esc(lastMsg[1])}</span><i class="gb">${CHAT.length}</i>${ic('chev',20)}</button>
+  <div class="sec"><h2>New Update Anime</h2><button class="pillb" data-go="schedule">Lihat Jadwal${ic('chev',16)}</button></div>
+  <div class="row">${latest.map(a=>`<button class="card" data-go="detail-${a.id}">${poster(a,{nw:1,rate:1})}<div class="nm">${esc(a.title)}</div></button>`).join('')}</div>
+  ${today.length?`<div class="sec"><h2>Tayang Hari Ini</h2><button data-go="schedule">Lihat semua</button></div><div class="row">${today.map(a=>`<button class="card" data-go="detail-${a.id}">${poster(a)}<div class="nm">${esc(a.title)}</div><div class="mt">Rilis ${a.time}</div></button>`).join('')}</div>`:''}
+  <div class="sec"><div><h2>Sedang Tayang</h2><div class="sub">Anime ongoing musim ini</div></div><button data-go="explore">Lihat semua</button></div>
+  <div class="row">${airing.map(a=>`<button class="card" data-go="detail-${a.id}">${poster(a,{live:1})}<div class="nm">${esc(a.title)}</div><div class="mt">${fmt(a.views)} ditonton</div></button>`).join('')}</div>
+  <div class="sec"><h2>Jelajahi Genre</h2></div>
+  <div class="chips" style="flex-wrap:wrap;overflow:visible;padding-bottom:110px">${GENRES.slice(0,10).map(g=>`<button class="chip" data-genre="${g}">${g}</button>`).join('')}</div>`;
+  $('#fabs').innerHTML=`<button class="fab" data-go="settings" aria-label="Pengaturan">${ic('gear',26)}</button>`;
+  const draw=()=>{
+    const pg=clanI%5;
+    $('#cl').innerHTML=CLANS.slice(pg*3,pg*3+3).map((c,k)=>{const r=pg*3+k+1;return `<div class="ci r${r<=3?r:0}"><span class="rk">${r}</span><span class="cn">${esc(c[0])}</span><span class="clv">Lv ${c[1]}</span></div>`}).join('');
+    $('#cd').innerHTML=[0,1,2,3,4].map(j=>`<i class="${j===pg?'on':''}" style="${j===pg?'':'width:6px'}"></i>`).join('');
+  };
+  draw();
+  timers.push(setInterval(()=>{clanI++;if($('#cl'))draw()},4000));
+  v.addEventListener('click',e=>{const g=e.target.closest('[data-genre]');if(g){exploreState.genre=[g.dataset.genre];go('explore')}});
+}
+function toggleFav(id){const i=S.fav.indexOf(id);if(i>=0){S.fav.splice(i,1);toast('Dihapus dari Koleksi')}else{S.fav.push(id);toast('Ditambahkan ke Koleksi')}save()}
+
+/* ---------- TIMELINE ---------- */
+const POSTS=[
+{u:'Wibu Master',n:2,t:'2 hari lalu',a:'frieren',ep:7,adm:1,tx:'Siapa di sini yang cita-citanya maraton sampai subuh tapi besoknya tetap kuat kerja? 🤚',media:'frieren7',r:808},
+{u:'Wibu Master',n:2,t:'2 hari lalu',a:'dandadan',ep:6,adm:1,tx:'Tolong jangan spoiler dulu, baru sampai episode 6 😭',r:123},
+{u:'Rin Hoshino',n:48,t:'3 hari lalu',a:'jujutsu',ep:12,tx:'Animasi pertarungan minggu ini gila sih. Ada yang setuju?',media:'jjk',r:64},
+{u:'Dika',n:301,t:'5 hari lalu',a:'solo',ep:3,tx:'Ada rekomendasi anime yang enak ditonton sambil santai?',r:27}];
+function postHtml(p){
+  const a=p.a?byId[p.a]:null;
+  return `<article class="post"><span class="av" style="${art(p.u)};width:50px;height:50px;font-size:16px">${initials(p.u)}</span><div class="pb"><div class="ph1"><b>${esc(p.u)}</b><span class="meta">#${p.n}</span>${p.adm?`<span class="vf">${ic('verified',20)}</span>`:''}<span class="meta tm">${p.t}</span><button class="iconbtn" style="width:32px;height:32px" data-toast="Menu pos tersedia di aplikasi Android" aria-label="Menu pos">${ic('more',20)}</button></div>
+  <div class="tags">${p.adm?'<span class="tg adm">ADM</span><span class="tg">Lvl. ?</span><span class="tg">♥ ?</span><span class="tg red">Admin</span>':`<span class="tg">Lvl. ${p.lv||1}</span>`}</div>
+  ${a?`<button class="ref" data-go="detail-${a.id}"><span class="poster" style="${art(a.id)};width:42px;border-radius:8px"></span><span><b>${esc(a.title)}</b><span>Episode ${p.ep}</span></span></button>`:''}
+  <p class="pt2">${esc(p.tx)}</p>
+  ${p.media?`<div class="media" style="${art(p.media,200)}"><span class="plb">${ic('play',30)}</span></div>`:''}
+  <button class="rep" data-toast="Balasan tersedia di aplikasi Android">${p.r} Replies</button></div></article>`}
+function Timeline(v){
+  const mine=(S.myPosts||[]);
+  v.innerHTML=`<div class="thead"><button class="av lg" data-go="profile" style="${art('seika')}" aria-label="Profil">SK</button><div class="an" style="flex:1;min-width:0"><div><b style="font-size:17px">Seika Kageen</b> <span class="meta">#11639940</span></div><span class="lv">Lvl. 1</span></div><button class="iconbtn" data-go="settings" aria-label="Pengaturan">${ic('gear',26)}</button></div>
+  <div class="thx">${meBar()}</div>
+  <div class="cur"><div>${ic('gem',34)}<span><b>2</b>WibuGem</span></div><div>${ic('key',34)}<span><b>1</b>Key</span></div></div>
+  <form class="comp" id="tf" style="padding:14px 20px;border-bottom:1px solid var(--outline-v)"><input id="ti" maxlength="160" placeholder="Tulis sesuatu di Timeline…" autocomplete="off" aria-label="Tulis pos"><button class="btn pri" style="flex:none;height:40px;padding:0 18px;border-radius:20px">Kirim</button></form>
+  ${[...mine,...POSTS].map(postHtml).join('')}<div style="height:150px"></div>`;
+  $('#fabs').innerHTML=`<button class="fab" data-toast="Daftar teman tersedia di aplikasi Android" style="bottom:156px" aria-label="Teman">${ic('users',28)}</button><button class="fab" data-chat aria-label="Chat global">${ic('chat',26)}</button>`;
+  v.onsubmit=e=>{e.preventDefault();const i=$('#ti');const t=i.value.trim();if(!t)return;S.myPosts=[{u:'Seika Kageen',n:11639940,t:'baru saja',tx:t,r:0},...mine].slice(0,20);save();Timeline(v);toast('Pos terkirim')};
+}
+
+/* ---------- PROFILE ---------- */
+let pTab='all';
+function Profile(v){
+  const hist=S.hist.map(h=>({a:byId[h.id],h})).filter(x=>x.a);
+  const mm=s=>`${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+  const item=({a,h})=>`<div class="pitem"><div class="ph1" style="padding:0"><span class="av" style="${art('seika')};width:40px;height:40px;font-size:13px">SK</span><b>Seika Kageen</b><span class="meta tm">• 4 hari lalu</span></div><button class="ref" data-go="play-${a.id}-${h.ep}"><span class="poster" style="${art(a.id)};width:46px;border-radius:8px"></span><span><b>${esc(a.title)}</b><span>Episode ${h.ep}</span></span></button><div class="mp"><span class="pbtn">${ic('play',14)}</span><span class="mb"><i style="width:${h.p}%"></i></span><span class="meta">${mm(1440*h.p/100)} / 24:00</span></div></div>`;
+  const draw=()=>{
+    $('#pt').innerHTML=[['all','Semua'],['kom','Komentar'],['rw','Riwayat'],['kol','Koleksi']].map(([k,l])=>`<button role="tab" data-pt="${k}" aria-selected="${pTab===k}">${l}</button>`).join('');
+    const fav=S.fav.map(i=>byId[i]).filter(Boolean);
+    $('#pc').innerHTML=pTab==='kom'?`<div class="empty"><b>Belum ada komentar</b>Komentar yang kamu tulis akan muncul di sini.</div>`
+     :pTab==='kol'?`${fav.length?`<div class="grid">${fav.map(a=>`<button class="card" data-go="detail-${a.id}">${poster(a,{live:1})}<div class="nm">${esc(a.title)}</div><div class="mt">${a.type} · ${a.year}</div></button>`).join('')}</div>`:`<div class="empty"><b>Koleksi masih kosong</b>Buka halaman anime, lalu ketuk ikon hati.</div>`}<div style="padding:0 20px 24px"><button class="btn out" style="width:100%" data-go="library">Buka Koleksi lengkap</button></div>`
+     :(hist.length?hist.map(item).join(''):`<div class="empty"><b>Belum ada riwayat</b>Episode yang kamu tonton akan muncul di sini.</div>`);
+  };
+  v.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px 0 10px"><button class="iconbtn" data-back aria-label="Kembali">${ic('back')}</button><button data-go="settings" style="font-weight:800;font-size:15px;padding:10px">Setting</button></div>
+  <div style="text-align:center;padding:4px 20px 0"><div style="position:relative;width:128px;margin:0 auto"><span class="av" style="${art('seika')};width:128px;height:128px;font-size:40px;border:2px solid var(--outline-v)">SK</span><button class="camb" data-toast="Ganti foto tersedia di aplikasi Android" aria-label="Ganti foto">${ic('cam',20)}</button><span class="hearts">${ic('heart',20)}<b>0</b></span></div>
+  <h1 style="margin:26px 0 6px;font-size:26px;font-weight:800;letter-spacing:-.02em">Seika Kageen <span class="meta" style="font-weight:500;font-size:15px">#11639940</span></h1><span class="lv">Lvl. 1</span></div>
+  <div class="pst"><div><b>${S.exp}</b>exp</div><div><b>0</b>komentar</div><div><b>0</b>bulan</div><div><b>0</b>teman</div></div>
+  <div style="text-align:center;padding-bottom:16px"><button class="pet" data-toast="Kelola Pet tersedia di aplikasi Android">🐾 Kelola Pet</button></div>
+  <div class="days" id="pt" role="tablist" style="justify-content:space-around;background:var(--c-low)"></div><div id="pc" style="padding-top:8px"></div>`;
+  draw();
+  v.addEventListener('click',e=>{const b=e.target.closest('[data-pt]');if(b){pTab=b.dataset.pt;draw()}});
+}
+
+/* ---------- EXPLORE ---------- */
+const exploreState={q:'',type:'Semua',genre:[],sort:'popular'};
+function Explore(v){
+  const st=exploreState;
+  const types=['Semua','Series','Film','Live Action','ONA','OVA','Special'];
+  v.innerHTML=`<h1 class="title">Jelajah</h1>
+  <label class="search">${ic('search')}<input id="q" type="search" placeholder="Judul, genre, atau studio" value="${esc(st.q)}" autocomplete="off" aria-label="Cari anime"></label>
+  <div id="recent"></div>
+  <div class="chips" id="types">${types.map(t=>`<button class="chip" aria-pressed="${st.type===t}" data-t="${t}">${t}</button>`).join('')}</div>
+  <div class="chips" id="gen" style="padding-top:8px">${GENRES.map(g=>`<button class="chip" aria-pressed="${st.genre.includes(g)}" data-g="${g}">${g}</button>`).join('')}</div>
+  <div class="hd"><h2 id="rh">Semua anime</h2><span style="display:flex;gap:8px"><button class="iconbtn" id="rnd" style="width:38px;height:38px;background:var(--c-high)" aria-label="Anime acak">${ic('dice',20)}</button><button class="sort" id="srt">${ic('sort')}<span id="sl"></span>${ic('drop',18)}</button></span></div>
+  <div id="res"></div>`;
+  const sortNames={popular:'Terpopuler',title:'A–Z',latest:'Terbaru'};
+  function draw(){
+    const q=st.q.trim().toLowerCase();
+    let L=A.filter(a=>(st.type==='Semua'||a.type===st.type)&&st.genre.every(g=>a.genres.includes(g))&&(!q||(a.title+' '+a.jp+' '+a.studio+' '+a.genres.join(' ')).toLowerCase().includes(q)));
+    L.sort(st.sort==='title'?(a,b)=>a.title.localeCompare(b.title):st.sort==='latest'?(a,b)=>b.aired.localeCompare(a.aired):(a,b)=>b.views-a.views);
+    $('#sl').textContent=sortNames[st.sort];
+    $('#rh').textContent=q?`Hasil untuk “${st.q.trim()}”`:'Semua anime';
+    $('#res').innerHTML=L.length?`<div class="grid">${L.map(a=>`<button class="card" data-go="detail-${a.id}">${poster(a,{live:1})}<div class="nm">${esc(a.title)}</div><div class="mt">${a.type} · ${a.year}</div></button>`).join('')}</div>`
+      :`<div class="empty"><b>Tidak ada hasil</b>Coba kata kunci lain atau longgarkan filter.<br><br><button class="chip" id="clr" style="display:inline-flex">Hapus filter</button></div>`;
+    const c=$('#clr');if(c)c.onclick=()=>{st.q='';st.type='Semua';st.genre=[];Explore(v)};
+    const r=$('#recent');
+    r.innerHTML=(!q&&S.recent.length&&document.activeElement===$('#q'))?`<div class="hd" style="padding-top:2px"><h2 style="font-size:13px;color:var(--fg2)">Pencarian terakhir</h2><button class="sub" id="rc" style="color:var(--primary);font-weight:700">Hapus semua</button></div><div class="chips">${S.recent.map(x=>`<button class="chip" data-r="${esc(x)}">${esc(x)}</button>`).join('')}</div>`:'';
+  }
+  draw();
+  const qi=$('#q');
+  qi.oninput=()=>{st.q=qi.value;draw()};
+  qi.onfocus=draw;
+  qi.onkeydown=e=>{if(e.key==='Enter'&&st.q.trim()){S.recent=[st.q.trim(),...S.recent.filter(x=>x!==st.q.trim())].slice(0,6);save();qi.blur();draw()}};
+  v.addEventListener('mousedown',e=>{const r=e.target.closest('[data-r]');if(r){e.preventDefault();st.q=r.dataset.r;qi.value=st.q;qi.blur();draw()}const rc=e.target.closest('#rc');if(rc){e.preventDefault();S.recent=[];save();draw()}});
+  v.addEventListener('click',e=>{
+    const t=e.target.closest('[data-t]');if(t){st.type=t.dataset.t;$('#types').querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',c===t));draw()}
+    const g=e.target.closest('[data-g]');if(g){const k=g.dataset.g;st.genre=st.genre.includes(k)?st.genre.filter(x=>x!==k):[...st.genre,k];g.setAttribute('aria-pressed',st.genre.includes(k));draw()}
+    if(e.target.closest('#srt'))sheet('Urutkan',Object.entries(sortNames),st.sort,x=>{st.sort=x;draw()});
+    if(e.target.closest('#rnd')){const a=A[Math.floor(Math.random()*A.length)];go('detail-'+a.id)}
+  });
+}
+
+/* ---------- SCHEDULE ---------- */
+let schedDay=todayIdx;
+function Schedule(v){
+  const draw=()=>{
+    const L=A.filter(a=>a.day===schedDay).sort((a,b)=>a.time.localeCompare(b.time));
+    $('#sl').innerHTML=L.length?L.map(a=>`<button class="srow" data-go="detail-${a.id}">${poster(a)}<div class="info"><span class="time">${ic('clock',12)}${a.time}</span><div class="t">${esc(a.title)}</div><div class="meta">${a.genres.slice(0,3).join(' • ')}</div><span class="eye">${ic('eye',13)}${fmt(a.views)}</span></div></button>`).join('')
+      :`<div class="empty"><b>Tidak ada jadwal</b>Belum ada anime yang dijadwalkan hari ${D[schedDay]}.</div>`;
+    $('#dy').querySelectorAll('button').forEach((b,i)=>b.setAttribute('aria-selected',i===schedDay));
+  };
+  v.innerHTML=`<h1 class="title" style="padding-bottom:0">Jadwal Tayang</h1><div class="sub pad" style="padding-bottom:10px">Rilis episode baru setiap minggu</div>
+  <div class="days" id="dy" role="tablist">${D.map((d,i)=>`<button role="tab" data-d="${i}">${d}${i===todayIdx?'<em>Hari ini</em>':''}</button>`).join('')}</div><div id="sl" style="padding:6px 0 24px"></div>`;
+  v.querySelector('#dy').onclick=e=>{const b=e.target.closest('[data-d]');if(b){schedDay=+b.dataset.d;draw()}};
+  draw();
+}
+
+/* ---------- LIBRARY ---------- */
+let libTab='fav';
+function Library(v){
+  const draw=()=>{
+    const fav=S.fav.map(i=>byId[i]).filter(Boolean),hist=S.hist.map(h=>({a:byId[h.id],h})).filter(x=>x.a);
+    const dls=Object.entries(S.dl).filter(([k,x])=>x.p>=100).map(([k])=>{const [id,ep]=k.split('|');return{a:byId[id],ep}}).filter(x=>x.a);
+    $('#seg').innerHTML=[['hist','Riwayat',hist.length],['fav','Favorit',fav.length],['dl','Unduhan',dls.length]].map(([k,l,n])=>`<button role="tab" aria-selected="${libTab===k}" data-k="${k}">${l}${n?' · '+n:''}</button>`).join('');
+    let h='';
+    if(libTab==='hist'){
+      h=hist.length?hist.map(({a,h})=>`<button class="hist" data-go="play-${a.id}-${h.ep}"><div class="th"><div class="ph" style="${art(a.id+h.ep,120)}"></div><i class="pg" style="width:${h.p}%"></i></div><div><b>${esc(a.title)}</b><span class="meta">Episode ${h.ep} · ${h.p}%</span></div></button>`).join('')
+        +`<div style="padding:10px 20px"><button class="chip" id="ch">Hapus riwayat</button></div>`
+        :`<div class="empty"><b>Belum ada riwayat</b>Episode yang kamu tonton akan muncul di sini.</div>`;
+    }else if(libTab==='fav'){
+      h=fav.length?`<div class="grid">${fav.map(a=>`<button class="card" data-go="detail-${a.id}">${poster(a,{live:1})}<div class="nm">${esc(a.title)}</div><div class="mt">${a.type} · ${a.year}</div></button>`).join('')}</div>`
+        :`<div class="empty"><b>Koleksi masih kosong</b>Buka halaman anime, lalu ketuk ikon hati untuk memilih status koleksi.</div>`;
+    }else{
+      h=dls.length?dls.map(({a,ep})=>`<button class="hist" data-go="play-${a.id}-${ep}"><div class="th"><div class="ph" style="${art(a.id+ep,120)}"></div></div><div><b>${esc(a.title)}</b><span class="meta">Episode ${ep} • ${S.q} • Offline</span></div></button>`).join('')
+        :`<div class="empty"><b>Belum ada unduhan</b>Ketuk ikon download di daftar episode atau di pemutar untuk menonton tanpa internet.</div>`;
+    }
+    $('#lb').innerHTML=h;
+    const c=$('#ch');if(c)c.onclick=()=>dialog('Hapus semua riwayat?','Progres tontonan semua anime akan dihapus. Favorit tidak terpengaruh.','Hapus',()=>{S.hist=[];save();draw()});
+  };
+  v.innerHTML=`<div style="padding:8px 10px 0"><button class="iconbtn" data-back aria-label="Kembali">${ic('back')}</button></div><h1 class="title" style="padding-top:2px">Koleksi</h1>
+  <button class="weekcard" data-go="settings"><div><small>Minggu ini</small><b>${S.hist.length?'1 jam 12 mnt':'Mulai nonton untuk melihat statistikmu'}</b></div><span class="sub" style="color:var(--primary);font-weight:700">Lihat statistik ›</span></button>
+  <div class="seg" id="seg" role="tablist"></div><div id="lb" style="padding-bottom:24px"></div>`;
+  $('#seg').onclick=e=>{const b=e.target.closest('[data-k]');if(b){libTab=b.dataset.k;draw()}};
+  draw();
+}
+
+/* ---------- DETAIL ---------- */
+function eps(a){const n=Math.min(a.eps,a.eps>60?60:a.eps);return Array.from({length:n},(_,i)=>i+1)}
+let epDesc=false;
+function Detail(v,id){
+  const a=byId[id];if(!a){v.innerHTML='<div class="empty"><b>Anime tidak ditemukan</b></div>';return}
+  const fav=S.fav.includes(a.id);const h=S.hist.find(x=>x.id===a.id);
+  const list=eps(a);const startEp=h?h.ep:1;
+  const similar=A.filter(x=>x.id!==a.id&&x.genres.some(g=>a.genres.includes(g))).slice(0,8);
+  let open=false;
+  const draw=()=>{
+    const L=epDesc?[...list].reverse():list;
+    v.innerHTML=`<div class="dbar"><button class="iconbtn" data-back aria-label="Kembali">${ic('back')}</button></div>
+    <div class="dhead"><div class="bg" style="${art(a.id+'bg',200)}"></div><div class="fade"></div>
+      <div class="dtop"><div>${poster(a)}</div><div style="padding-bottom:4px"><h1>${esc(a.title)}</h1><div class="sub" style="color:var(--fg)">${esc(a.jp)}</div><div class="meta" style="margin-top:4px">${a.year} · ${a.type} · ${sName(a.status)} · ${a.eps} EP</div></div></div></div>
+    <div class="stats"><span><b>${fmt(a.views)}</b> ditonton</span><span><b>${fmt(a.favs)}</b> favorit</span></div>
+    <div style="display:flex;gap:10px;padding:14px 20px 0"><button class="btn pri" data-go="play-${a.id}-${startEp}">${ic('play')}${h?'Lanjut EP '+startEp:'Tonton EP 1'}</button><button class="sq" id="fv" aria-label="Favorit" aria-pressed="${fav}" style="${fav?'color:var(--secondary)':''}">${ic(fav?'heart':'heartO')}</button></div>
+    <div class="genres">${a.genres.map(g=>`<button class="chip" data-genre="${g}">${g}</button>`).join('')}</div>
+    <div class="syn ${open?'':'clamp'}">${esc(a.syn)}</div><button class="more" id="mr">${open?'Tutup':'Selengkapnya'}</button>
+    <div class="info-box"><div><span>Studio</span><b>${esc(a.studio)}</b></div><div><span>Mulai tayang</span><b>${a.aired}</b></div><div><span>Tahun</span><b>${a.year}</b></div><div><span>Tipe</span><b>${a.type}</b></div><div><span>Total episode</span><b>${a.eps}</b></div></div>
+    <div class="hd" style="padding-top:22px"><h2>Episode</h2><span style="display:flex;gap:6px"><button class="sort" id="ord">${epDesc?'Terbaru':'Terlama'}</button></span></div>
+    <div class="eps">${L.map(n=>{const k=a.id+'|'+n,d=S.dl[k];const pg=h&&h.ep===n?h.p:(h&&n<h.ep?100:0);return `<div class="ep"><button style="display:flex;gap:12px;align-items:center;flex:1;min-width:0;text-align:left" data-go="play-${a.id}-${n}"><div class="th"><div class="ph" style="${art(a.id+n,120)}"></div>${pg?`<i class="pg" style="width:${pg}%"></i>`:''}</div><div class="tx"><b>Episode ${n}</b><span>${pg>=100?'Sudah ditonton':a.status==='ONGOING'&&n===list[list.length-1]?'Baru · minggu ini':'Durasi 24 mnt'}</span></div></button><button class="dl" data-dl="${n}" aria-label="Download episode ${n}">${d?(d.p>=100?`<span style="color:var(--primary)">${ic('check',22)}</span>`:`<i class="ring" style="--p:${d.p}"></i>`):ic('dl',22)}</button></div>`}).join('')}</div>
+    ${a.eps>list.length?`<div class="meta pad" style="padding-top:8px;padding-bottom:4px">Menampilkan ${list.length} dari ${a.eps} episode pada preview ini.</div>`:''}
+    <div class="sec"><h2>Anime Serupa</h2></div><div class="row" style="padding-bottom:30px">${similar.map(x=>`<button class="card" data-go="detail-${x.id}">${poster(x)}<div class="nm">${esc(x.title)}</div></button>`).join('')}</div>`;
+  };
+  draw();
+  v.onclick=e=>{
+    if(e.target.closest('#fv')){toggleFav(a.id);draw()}
+    if(e.target.closest('#mr')){open=!open;draw()}
+    if(e.target.closest('#ord')){epDesc=!epDesc;draw()}
+    const g=e.target.closest('[data-genre]');if(g){exploreState.genre=[g.dataset.genre];exploreState.q='';exploreState.type='Semua';go('explore')}
+    const d=e.target.closest('[data-dl]');if(d){startDl(a,+d.dataset.dl,draw)}
+  };
+}
+function startDl(a,n,after){
+  const k=a.id+'|'+n;
+  if(S.dl[k]){
+    if(S.dl[k].p>=100)dialog('Hapus download?','File episode ini akan dihapus dari perangkat.','Hapus',()=>{delete S.dl[k];save();toast(`Download Episode ${n} dihapus`);after&&after()});
+    else{delete S.dl[k];save();after&&after()}
+    return;
+  }
+  S.dl[k]={p:0};toast(`Download ${S.q} dimulai`);after&&after();
+  const iv=setInterval(()=>{const d=S.dl[k];if(!d){clearInterval(iv);return}d.p=Math.min(100,d.p+8+Math.random()*12|0);save();if(d.p>=100){clearInterval(iv);toast(`Episode ${n} tersimpan offline`)}after&&after()},500);
+}
+
+/* ---------- PLAYER ---------- */
+function Player(v,arg){
+  const m=arg.match(/^(.*)-(\d+)$/);const a=byId[m?m[1]:arg];let ep=m?+m[2]:1;
+  if(!a){back();return}
+  const list=eps(a);let t=0,playing=true,quality=S.q,dur=1440,hideT;
+  const hi=S.hist.find(x=>x.id===a.id);
+  if(hi&&hi.ep===ep)t=Math.round(dur*hi.p/100);
+  const mm=s=>`${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+  const idx=list.indexOf(ep);
+  v.className='view';
+  v.innerHTML=`<div class="dbar" style="display:none"></div>
+  <div class="screen" id="sc"><div class="scene" style="${art(a.id+ep,130)}"><div class="ph" style="position:absolute;inset:0;display:grid;place-items:center;font-size:84px;font-weight:800;color:rgba(255,255,255,.18);letter-spacing:-.05em">${esc(initials(a.title))}</div></div>
+    <div class="ctl" id="ct"><div class="ptop"><button class="iconbtn" data-back aria-label="Kembali">${ic('back')}</button><div class="ttl"><b>${esc(a.title)}</b><span>Episode ${ep} • <span id="qq">${quality}</span></span></div><button class="iconbtn" id="pp2" aria-label="Picture-in-Picture">${ic('pip')}</button><button class="iconbtn" data-go="settings" aria-label="Pengaturan video">${ic('gear')}</button></div>
+      <div class="pmid"><button id="pv" aria-label="Episode sebelumnya" ${idx<=0?'disabled style="opacity:.4"':''}>${ic('prev',28)}</button><button id="rw" aria-label="Mundur 10 detik">${ic('rew',32)}</button><button class="big" id="pl" aria-label="Jeda">${ic('pause',34)}</button><button id="fw" aria-label="Maju 10 detik">${ic('fwd',32)}</button><button id="nx" aria-label="Episode berikutnya" ${idx>=list.length-1?'disabled style="opacity:.4"':''}>${ic('next',28)}</button></div>
+      <div class="pbot"><div class="tm"><span id="tc">00:00</span><span>${mm(dur)}</span></div><div class="seek" id="sk" role="slider" aria-label="Posisi video" tabindex="0"><i id="sf"></i><u id="sh"></u></div></div></div>
+    <button class="skip" id="skip" hidden>Lewati OP</button></div>
+  <div class="ptitle"><h1>${esc(a.title)}</h1><span>Episode ${ep}</span></div>
+  <div class="navrow"><button class="btn ghost" id="b1" ${idx<=0?'disabled':''}>${ic('prev',18)}Sebelumnya</button><button class="btn pri" id="b2" ${idx>=list.length-1?'disabled':''}>Ep ${ep+1}${ic('next',18)}</button></div>
+  <div style="padding:12px 20px 0"><button class="btn out" id="dl" style="width:100%">${ic('dl',20)}<span id="dlt">Download untuk ditonton offline</span></button></div>
+  <div class="lbl">Kualitas</div><div class="qrow" id="qr">${['720p','480p','360p'].map(q=>`<button class="chip" aria-pressed="${q===quality}" data-q="${q}">${q===quality?ic('check',16):''}${q}</button>`).join('')}</div>
+  <div class="lbl">Episode</div><div class="hrow" id="hr" style="padding-bottom:30px">${list.slice(Math.max(0,idx-2),idx+12).map(n=>`<button class="e" data-e="${n}" aria-current="${n===ep}"><div class="th"><div class="ph" style="${art(a.id+n,120)}"></div>${n===ep?'<em>Diputar</em>':''}</div><b>Episode ${n}</b></button>`).join('')}</div>`;
+  const ct=$('#ct'),sc=$('#sc');
+  const upd=()=>{
+    const p=t/dur*100;$('#sf').style.width=p+'%';$('#sh').style.left=p+'%';$('#tc').textContent=mm(t);
+    $('#sk').setAttribute('aria-valuenow',Math.round(p));
+    $('#pl').innerHTML=ic(playing?'pause':'play',34);sc.classList.toggle('paused',!playing);
+    $('#skip').hidden=!(t>=10&&t<=100);
+    const e=S.hist.find(x=>x.id===a.id);const rec={id:a.id,ep,p:Math.min(100,Math.round(p))};
+    if(e)Object.assign(e,rec);else S.hist.unshift(rec);
+  };
+  const wake=()=>{ct.classList.remove('hide');clearTimeout(hideT);if(playing)hideT=setTimeout(()=>ct.classList.add('hide'),3000)};
+  const goEp=n=>{save();location.hash=`play-${a.id}-${n}`};
+  timers.push(setInterval(()=>{if(playing){t=Math.min(dur,t+1);upd();if(t>=dur){playing=false;if(S.auto&&idx<list.length-1){toast(`Memutar Episode ${ep+1}…`);setTimeout(()=>goEp(ep+1),1200)}}if(t%5===0)save()}},1000));
+  sc.onclick=e=>{if(e.target.closest('button')||e.target.closest('.seek'))return;if(ct.classList.contains('hide'))wake();else ct.classList.add('hide')};
+  $('#pl').onclick=()=>{playing=!playing;upd();wake()};
+  $('#rw').onclick=()=>{t=Math.max(0,t-10);upd();wake()};
+  $('#fw').onclick=()=>{t=Math.min(dur,t+10);upd();wake()};
+  $('#skip').onclick=()=>{t=Math.max(t,95);upd();toast('Intro dilewati')};
+  $('#pp2').onclick=()=>toast('PiP hanya tersedia di aplikasi Android');
+  const seek=e=>{const r=$('#sk').getBoundingClientRect();t=Math.round(dur*Math.min(1,Math.max(0,(e.clientX-r.left)/r.width)));upd();wake()};
+  $('#sk').onclick=seek;
+  $('#sk').onkeydown=e=>{if(e.key==='ArrowRight'){t=Math.min(dur,t+10);upd()}if(e.key==='ArrowLeft'){t=Math.max(0,t-10);upd()}};
+  $('#pv').onclick=$('#b1').onclick=()=>idx>0&&goEp(list[idx-1]);
+  $('#nx').onclick=$('#b2').onclick=()=>idx<list.length-1&&goEp(list[idx+1]);
+  $('#qr').onclick=e=>{const b=e.target.closest('[data-q]');if(!b)return;quality=b.dataset.q;$('#qq').textContent=quality;$('#qr').querySelectorAll('.chip').forEach(c=>{const on=c===b;c.setAttribute('aria-pressed',on);c.innerHTML=(on?ic('check',16):'')+c.dataset.q});toast('Kualitas: '+quality)};
+  $('#hr').onclick=e=>{const b=e.target.closest('[data-e]');if(b)goEp(+b.dataset.e)};
+  const dlSync=()=>{const d=S.dl[a.id+'|'+ep];$('#dlt').textContent=d?(d.p>=100?`Tersimpan offline • ${S.q}`:`Mengunduh ${d.p}%`):'Download untuk ditonton offline'};
+  $('#dl').onclick=()=>startDl(a,ep,dlSync);dlSync();
+  upd();wake();
+}
+
+/* ---------- MANGA ---------- */
+const mState={q:'',genre:''};
+function Manga(v){
+  const st=mState;const gen=['Aksi','Romansa','Horor','Komedi','Fantasi','Isekai'];
+  const gmap={Aksi:'Action',Romansa:'Romance',Horor:'Horror',Komedi:'Comedy',Fantasi:'Fantasy',Isekai:'Isekai'};
+  const mc=m=>`<button class="card" data-go="mdetail-${m.id}">${poster({id:m.id,title:m.title,status:''},{})}<div class="nm">${esc(m.title)}</div><div class="mt">${m.type} · ${m.src}</div></button>`;
+  const draw=()=>{
+    const q=st.q.trim().toLowerCase();
+    const f=M.filter(m=>(!q||(m.title+m.author).toLowerCase().includes(q))&&(!st.genre||m.genres.includes(gmap[st.genre])));
+    const filtering=q||st.genre;
+    const cont=Object.keys(S.read).map(k=>mById[k]).filter(Boolean);
+    $('#mb').innerHTML=filtering?(f.length?`<div class="grid">${f.map(mc).join('')}</div>`:`<div class="empty"><b>Tidak ada hasil</b>Coba kata kunci lain atau longgarkan filter.</div>`)
+    :`${cont.length?`<div class="sec"><h2>Lanjut baca</h2></div><div class="row">${cont.map(mc).join('')}</div>`:''}
+     <div class="sec"><h2>Populer di Indonesia</h2></div><div class="row">${M.slice(0,6).map(mc).join('')}</div>
+     <div class="sec"><h2>Trending dunia</h2></div><div class="row">${[...M].reverse().slice(0,6).map(mc).join('')}</div>
+     <div class="sec"><h2>Baru update</h2></div><div class="grid" style="padding-top:0">${M.slice(2,8).map(mc).join('')}</div>`;
+  };
+  v.innerHTML=`<h1 class="title">Manga</h1>
+  <label class="search">${ic('search')}<input id="mq" type="search" placeholder="Cari manga" value="${esc(st.q)}" autocomplete="off" aria-label="Cari manga"></label>
+  <div class="chips"><button class="chip" aria-pressed="${!st.genre}" data-mg="">Semua</button>${gen.map(g=>`<button class="chip" aria-pressed="${st.genre===g}" data-mg="${g}">${g}</button>`).join('')}</div>
+  <div id="mb" style="padding-bottom:20px"></div>
+  <div class="note">Preview: sumber manga asli (MangaDex, Shinigami, Komiku, WEBTOON) tidak dimuat di versi web. Judul di sini contoh.</div>`;
+  draw();
+  $('#mq').oninput=e=>{st.q=e.target.value;draw()};
+  v.addEventListener('click',e=>{const g=e.target.closest('[data-mg]');if(g){st.genre=g.dataset.mg;v.querySelectorAll('[data-mg]').forEach(c=>c.setAttribute('aria-pressed',c===g));draw()}});
+}
+function MDetail(v,id){
+  const m=mById[id];if(!m){v.innerHTML='<div class="empty"><b>Manga tidak ditemukan.</b></div>';return}
+  const fav=S.mfav.includes(m.id);const n=Math.min(m.chaps,40);const rd=S.read[m.id];
+  const chs=Array.from({length:n},(_,i)=>n-i);let desc=true;let more=false;
+  const draw=()=>{
+    const L=desc?chs:[...chs].reverse();
+    v.innerHTML=`<div class="dbar"><button class="iconbtn" data-back aria-label="Kembali" style="background:rgba(0,0,0,.35);color:#fff">${ic('back')}</button></div>
+    <div class="dhead" style="min-height:280px;padding-bottom:6px"><div class="bg" style="${art(m.id+'b',200)}"></div><div class="fade"></div>
+    <div class="dtop"><div style="width:112px;flex:none">${poster({id:m.id,title:m.title})}</div><div><h1>${esc(m.title)}</h1><div class="meta">${esc(m.author)}</div><div class="meta" style="margin-top:4px">${m.type} · ${m.status} · ${m.year}</div></div></div></div>
+    <div style="display:flex;gap:10px;padding:14px 20px 0"><button class="btn pri" data-go="read-${m.id}-${rd||chs[chs.length-1]}">${ic('play')}${rd?'Lanjut Ch. '+rd:'Mulai baca'}</button><button class="sq" id="mf" aria-pressed="${fav}" aria-label="Favorit" style="${fav?'color:var(--secondary)':''}">${ic(fav?'heart':'heartO')}</button></div>
+    <div class="genres">${m.genres.map(g=>`<span class="chip">${g}</span>`).join('')}</div>
+    <div class="syn ${more?'':'clamp'}">${esc(m.syn)}</div><button class="more" id="mm">${more?'Ringkas':'Selengkapnya'}</button>
+    <div class="info-box"><div><span>Status</span><b>${m.status}</b></div><div><span>Tipe</span><b>${m.type}</b></div><div><span>Tahun</span><b>${m.year}</b></div><div><span>Pengarang</span><b>${esc(m.author)}</b></div><div><span>Sumber</span><b>${m.src}</b></div></div>
+    <div class="hd" style="padding-top:22px"><h2>Chapter</h2><button class="sort" id="mo">${desc?'Terbaru':'Terlama'}</button></div>
+    ${L.map(c=>`<button class="chap ${rd&&c<=rd?'read':''}" data-go="read-${m.id}-${c}"><div><b>Ch. ${c}</b><small>${rd&&c<=rd?'Sudah dibaca':'Indonesia'}</small></div>${ic('dl',20)}</button>`).join('')}
+    <div style="height:30px"></div>`;
+  };
+  draw();
+  v.onclick=e=>{
+    if(e.target.closest('#mf')){const i=S.mfav.indexOf(m.id);if(i>=0)S.mfav.splice(i,1);else S.mfav.push(m.id);save();toast(i>=0?'Dihapus dari favorit':'Ditambahkan ke favorit');draw()}
+    if(e.target.closest('#mm')){more=!more;draw()}
+    if(e.target.closest('#mo')){desc=!desc;draw()}
+  };
+}
+function Reader(v,arg){
+  const mt=arg.match(/^(.*)-(\d+)$/);const m=mById[mt?mt[1]:arg];const ch=mt?+mt[2]:1;if(!m){back();return}
+  const total=Math.min(m.chaps,40);const pages=8;let tr=false,barHide=false;
+  v.className='view reader';S.read[m.id]=ch;save();
+  const lines=['Akhirnya sampai juga…','Jangan menoleh ke belakang.','Aku tidak akan kalah lagi!','Kau yakin dengan keputusanmu?','Tunggu, suara apa itu?','Ini baru permulaan.'];
+  const draw=()=>{
+    v.innerHTML=`<div class="rbar" id="rb"><button class="iconbtn" data-back aria-label="Kembali">${ic('back')}</button><div class="t"><b>${esc(m.title)}</b><span>Ch. ${ch} · Sumber: ${m.src}</span></div><button class="iconbtn" id="tr" aria-label="Terjemahkan" aria-pressed="${tr}" style="${tr?'color:var(--primary)':''}">${ic('trans')}</button></div>
+    ${Array.from({length:pages},(_,i)=>`<div class="pg-img" data-p="${i+1}"><div class="art" style="${art(m.id+ch+i,i*47%360)}"></div><span style="position:absolute;inset:0;display:grid;place-items:center;font-weight:800;font-size:30px;opacity:.22">${i+1}</span>${tr&&i%2===0?`<div class="bubble" style="left:${12+i*5%30}%;top:${14+i*7%40}%">${lines[i%lines.length]}</div>`:''}</div>`).join('')}
+    <div class="rend"><b>Akhir Ch. ${ch}</b><span class="meta">${ch<total?'':'Ini chapter terakhir yang tersedia'}</span>${ch<total?`<button class="btn pri" style="flex:none;padding:0 28px" data-go="read-${m.id}-${ch+1}">Chapter berikutnya</button>`:''}${ch>1?`<button class="btn out" style="flex:none;padding:0 28px" data-go="read-${m.id}-${ch-1}">Chapter sebelumnya</button>`:''}<button class="btn out" style="flex:none;padding:0 28px" data-go="mdetail-${m.id}">Daftar chapter</button></div>
+    <div class="rpill" id="rp">1 / ${pages}</div>`;
+  };
+  draw();
+  v.onscroll=()=>{const imgs=v.querySelectorAll('.pg-img');let cur=1;imgs.forEach(im=>{if(im.offsetTop-v.scrollTop<v.clientHeight*.5)cur=+im.dataset.p});const p=$('#rp');if(p)p.textContent=`${cur} / ${pages}`};
+  let lastY=0;v.addEventListener('scroll',()=>{const y=v.scrollTop;const rb=$('#rb');if(rb)rb.classList.toggle('hide',y>lastY&&y>80);lastY=y},{passive:true});
+  v.onclick=e=>{
+    if(e.target.closest('#tr')){tr=!tr;toast(tr?'Menerjemahkan ke Indonesia (contoh)':'Tampilkan asli');const y=v.scrollTop;draw();v.scrollTop=y;return}
+    if(e.target.closest('button'))return;
+    const rb=$('#rb');if(rb)rb.classList.toggle('hide')
+  };
+}
+
+/* ---------- SETTINGS ---------- */
+function Settings(v){
+  const sw=(k,ico,t,d)=>`<button class="set" data-sw="${k}">${ic(ico)}<span class="tx"><b>${t}</b>${d?`<span>${d}</span>`:''}</span><span class="sw" role="switch" aria-checked="${!!S[k]}"></span></button>`;
+  const grp=(k,opts,cls)=>`<div class="sgm ${cls||''}" data-grp="${k}">${opts.map(([val,l])=>`<button aria-pressed="${S[k]===val}" data-val="${val}">${S[k]===val?'✓ ':''}${l}</button>`).join('')}</div>`;
+  v.innerHTML=`<div style="padding:8px 10px"><button class="iconbtn" data-back aria-label="Kembali">${ic('back')}</button></div>
+  <h1 class="title" style="padding-top:6px;font-size:30px">Pengaturan</h1>
+  <div class="sg">Tampilan</div>
+  <div class="set" style="padding-bottom:0">${ic('moon')}<span class="tx"><b>Tema</b></span></div>
+  ${grp('theme',[['system','Sistem'],['light','Terang'],['dark','Gelap']])}
+  ${sw('dyn','palette','Warna dinamis','Ikuti warna wallpaper (Material You). Hanya di Android 12+')}
+  ${sw('amoled','moon','Hitam pekat (AMOLED)','Latar hitam murni saat mode gelap, hemat baterai')}
+  <div class="sg">Konten</div>
+  ${sw('mature','shield','Konten dewasa','Tampilkan anime ber-genre dewasa (Ecchi, Erotica, Hentai) dan manga bertema dewasa')}
+  <div class="sg">Pemutar</div>
+  <div class="set" style="padding-bottom:0">${ic('hd')}<span class="tx"><b>Kualitas default</b></span></div>
+  ${grp('q',[['360p','360p'],['480p','480p'],['720p','720p'],['1080p','1080p']],'ind')}
+  <div class="set" style="padding-bottom:0">${ic('bars')}<span class="tx"><b>Kualitas di data seluler</b></span></div>
+  ${grp('mq',[['follow','Ikuti default'],['360p','360p'],['480p','480p'],['720p','720p']],'ind')}
+  ${sw('auto','next','Putar otomatis episode berikutnya','Hitung mundur 6 detik di akhir episode')}
+  ${sw('pip','pip','Picture-in-Picture otomatis','Video mengecil saat kamu keluar aplikasi')}
+  ${sw('bgaudio','play','Putar audio di latar','Suara tetap jalan saat layar mati atau aplikasi ditinggal')}
+  ${sw('skipop','next','Lewati OP otomatis','Untuk anime yang OP-nya sudah kamu tandai di pemutar')}
+  ${sw('jump','fwd','Tombol +85 detik','Lompat 85 detik di awal episode yang OP-nya belum ditandai')}
+  <div class="sg">Notifikasi</div>
+  ${sw('notify','bell','Notifikasi episode baru','Cek anime favorit yang masih tayang setiap 6 jam')}
+  ${sw('notifyRel','bell','Notifikasi rilis anime','Episode baru dari semua anime yang sedang tayang, bukan hanya favorit')}
+  <div class="sg">Unduhan</div>
+  ${sw('wifi','wifi','Download hanya lewat Wi-Fi','Hemat kuota, download menunggu sampai tersambung Wi-Fi')}
+  <div class="sg">Data</div>
+  <button class="set" data-act="hist">${ic('trash')}<span class="tx"><b>Hapus riwayat tontonan</b><span>Progres semua episode akan hilang</span></span></button>
+  <button class="set" data-act="all">${ic('trash')}<span class="tx"><b>Hapus semua data</b><span>Favorit, riwayat, pencarian, pengaturan, dan file unduhan</span></span></button>
+  <div class="sg">Tentang</div>
+  <div class="set">${ic('info')}<span class="tx"><b>Kagenime ${VERSION}</b><span>Versi pertama · preview web</span></span></div>
+  <div class="set">${ic('cloud')}<span class="tx"><b>Konten disediakan pihak ketiga</b><span>Aplikasi ini tidak meng-host video apa pun</span></span></div>
+  <div class="about">Ini preview web dari aplikasi Android. Data, poster, dan pemutar adalah contoh; pengaturan tersimpan di browser ini saja.</div>`;
+  v.onclick=e=>{
+    const s=e.target.closest('[data-sw]');if(s){const k=s.dataset.sw;S[k]=!S[k];save();applyTheme();s.querySelector('.sw').setAttribute('aria-checked',S[k]);if(k==='dyn')toast('Warna dinamis hanya berlaku di Android 12+');return}
+    const b=e.target.closest('[data-val]');if(b){const g=b.parentElement.dataset.grp;S[g]=b.dataset.val;save();applyTheme();const y=v.scrollTop;Settings(v);v.scrollTop=y;return}
+    const a=e.target.closest('[data-act]');if(a){
+      if(a.dataset.act==='hist')dialog('Hapus semua riwayat tontonan?','Progres semua episode akan hilang.','Hapus',()=>{S.hist=[];save();toast('Riwayat dihapus')});
+      else dialog('Hapus semua data di perangkat ini?','Favorit, riwayat, pencarian, pengaturan, dan file unduhan akan dihapus.','Hapus',()=>{S=JSON.parse(JSON.stringify(defaults));save();applyTheme();toast('Semua data dihapus');Settings(v)});
+    }
+  };
+}
+route();
+</script>
+
+</body></html>
