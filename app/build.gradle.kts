@@ -60,6 +60,13 @@ android {
       "GOOGLE_OAUTH_CLIENT_ID",
       "\"$googleOAuthClientId\"",
     )
+    // Browser fallback is only valid for installed-app (Android) clients, which use the reversed
+    // client ID redirect. Web application clients reject custom schemes with HTTP 400 invalid_request.
+    buildConfigField(
+      "boolean",
+      "GOOGLE_OAUTH_BROWSER_FALLBACK",
+      System.getenv("GOOGLE_OAUTH_BROWSER_FALLBACK")?.toBooleanStrictOrNull()?.toString() ?: "false",
+    )
     manifestPlaceholders["googleOAuthScheme"] = googleOAuthScheme
   }
 

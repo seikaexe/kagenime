@@ -41,6 +41,8 @@ class GoogleAuth(
 
     val clientId: String = BuildConfig.GOOGLE_OAUTH_CLIENT_ID.trim()
     val isConfigured: Boolean get() = clientId.isNotBlank()
+    /** Browser fallback only fits installed-app (Android) clients, which use the reversed client-ID redirect. */
+    val browserFallbackAllowed: Boolean get() = BuildConfig.GOOGLE_OAUTH_BROWSER_FALLBACK
 
     /**
      * Google only accepts an https redirect or the reversed client ID for installed apps.

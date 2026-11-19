@@ -169,7 +169,7 @@ fun LoginScreen(auth: GoogleAuth, onSignedIn: () -> Unit, onGuest: () -> Unit) {
                                 is GoogleAuth.Result.Failed -> {
                                     working = false
                                     message = context.getString(R.string.login_failed)
-                                    browserFallback = true
+                                    browserFallback = auth.browserFallbackAllowed
                                 }
                             }
                         }
