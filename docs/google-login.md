@@ -28,7 +28,7 @@ Buka <https://console.cloud.google.com/apis/credentials> pada project yang sama,
 Build ini sudah memakai client ID default:
 
 ```text
-684800998743-aaj1rf6splc47lirqq2170jcipr45k3n.apps.googleusercontent.com
+684800998743-mnt3hplc0la5dcpm1mi7t8uuq1aehuib.apps.googleusercontent.com
 ```
 
 Client ID aplikasi terpasang bukan rahasia, jadi aman disimpan di repo. Untuk menggantinya:

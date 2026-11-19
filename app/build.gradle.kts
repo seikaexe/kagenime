@@ -14,7 +14,7 @@ val releaseAlias = System.getenv("KEY_ALIAS") ?: "fuwanime"
 // or -PgoogleOAuthClientId can override it; blank values fall back to this default.
 val googleOAuthClientId = System.getenv("GOOGLE_OAUTH_CLIENT_ID")?.takeIf { it.isNotBlank() }
   ?: (findProperty("googleOAuthClientId") as String?)?.takeIf { it.isNotBlank() }
-  ?: "684800998743-aaj1rf6splc47lirqq2170jcipr45k3n.apps.googleusercontent.com"
+  ?: "684800998743-mnt3hplc0la5dcpm1mi7t8uuq1aehuib.apps.googleusercontent.com"
 // Google rejects arbitrary custom redirect schemes. Installed-app clients use the reversed
 // client ID ("com.googleusercontent.apps.<id>:/oauth2redirect"), so derive it from the client ID.
 val googleOAuthScheme =
