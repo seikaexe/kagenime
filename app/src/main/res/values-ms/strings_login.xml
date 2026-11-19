@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login_title">Masuk ke Kagenime</string>
+    <string name="login_welcome">Selamat datang!</string>
+    <string name="login_subtitle">Masuk dengan Google supaya profil, sejarah tontonan dan koleksi anda kekal tersimpan.</string>
+    <string name="login_google">Masuk dengan Google</string>
+    <string name="login_signing_in">Menyambung ke Google…</string>
+    <string name="login_terms">Dengan masuk, anda bersetuju dengan Terma Perkhidmatan dan Dasar Privasi Kagenime.</string>
+    <string name="login_privacy">Baca Dasar Privasi</string>
+    <string name="login_guest">Teruskan sebagai tetamu</string>
+    <string name="login_guest_hint">Log masuk Google belum dikonfigurasikan dalam binaan ini. Anda masih boleh menggunakan aplikasi sebagai tetamu.</string>
+    <string name="login_failed">Log masuk Google gagal. Sila cuba lagi.</string>
+    <string name="login_cancelled">Log masuk dibatalkan.</string>
+    <string name="login_config_title">Log masuk Google belum dikonfigurasikan</string>
+    <string name="login_config_body">Tambahkan client ID OAuth Google untuk pakej com.fuwanime.app dan sijil keluaran Kagenime, kemudian bina semula. Lihat docs/google-login.md.</string>
+    <string name="login_age_note">Untuk pengguna berumur 14 tahun ke atas</string>
+    <string name="account_hi">Hai, %1$s</string>
+    <string name="account_guest">Tetamu Kagenime</string>
+    <string name="account_age">Umur 14+</string>
+    <string name="account_level">Lv. %1$d</string>
+    <string name="account_open">Buka profil</string>
+    <string name="account_sign_out">Log keluar daripada akaun Google</string>
+    <string name="home_greet_morning">Selamat pagi</string>
+    <string name="home_greet_afternoon">Selamat tengah hari</string>
+    <string name="home_greet_evening">Selamat petang</string>
+    <string name="home_greet_night">Selamat malam</string>
+    <string name="home_age_notice">Kagenime · untuk usia 14 tahun ke atas</string>
+    <string name="home_search_hint">Cari anime di sini</string>
+    <string name="home_minigame">Minigame</string>
+    <string name="home_minigame_soon">Minigame akan datang di Kagenime.</string>
+    <string name="home_last_watched">Terakhir Ditonton</string>
+    <string name="home_see_more">Lihat Lagi</string>
+    <string name="home_top_anime">Anime Teratas</string>
+    <string name="home_top_anime_subtitle">Paling banyak ditonton</string>
+    <string name="home_episode_short">Eps %1$s</string>
+</resources>

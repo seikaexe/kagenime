@@ -518,7 +518,7 @@ private fun MangaDetailSkeleton() {
     }
 }
 
-private val SOURCE_NAMES = listOf("Shinigami", "Komiku", "MangaPark", "WEBTOON", "MangaKakalot", "MangaPark") // indexed by sourceRank
+private val SOURCE_NAMES = listOf("Shinigami", "Komiku", "Comix", "WEBTOON", "MangaKakalot", "MangaPark") // indexed by sourceRank
 private val LANG_LABELS = mapOf(ChapterLang.ID to R.string.manga_lang_id, ChapterLang.EN to R.string.manga_lang_en, ChapterLang.RAW to R.string.manga_lang_raw)
 
 /** "Ch. 12", or the chapter title for a oneshot without a number. */

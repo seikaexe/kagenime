@@ -168,10 +168,12 @@
     <string name="mine_version_desc">Fork komuniti dengan reka bentuk semula Material 3</string>
     <string name="mine_third_party">Kandungan disediakan pihak ketiga</string>
     <string name="mine_third_party_desc">Aplikasi ini tidak menjadi hos untuk sebarang video</string>
-    <string name="mine_age_before">Sebelum bermula</string>
-    <string name="mine_age_body">Aplikasi ini memaparkan katalog anime daripada perkhidmatan pihak ketiga. Sesetengah tajuk mungkin tidak sesuai untuk kanak-kanak.\n\nKagenime ditujukan untuk pengguna berumur 13 tahun ke atas. Aplikasi tidak membuat akaun dan tidak mengumpul data peribadi anda — semua sejarah, kegemaran dan tetapan hanya disimpan pada peranti ini.</string>
-    <string name="mine_age_confirm">Saya berumur 13 tahun atau lebih — Teruskan</string>
-    <string name="mine_age_exit">Saya belum cukup umur — Keluar</string>
+    <string name="mine_age_before">Selamat datang ke Kagenime</string>
+    <string name="mine_age_body">Kagenime ialah katalog anime dan manga untuk pengguna berumur 14 tahun ke atas. Sesetengah tajuk mungkin tidak sesuai untuk kanak-kanak.\n\nDengan meneruskan, anda mengesahkan bahawa anda berumur sekurang-kurangnya 14 tahun. Sejarah, kegemaran dan tetapan anda kekal disimpan pada peranti ini.</string>
+    <string name="mine_age_confirm">Saya berumur 14 tahun atau lebih — Teruskan</string>
+    <string name="mine_age_exit">Saya belum 14 tahun — Keluar</string>
+    <string name="mine_age_badge">14+</string>
+    <string name="mine_age_greeting">Halo, selamat datang!</string>
     <string name="mine_age_read_privacy">Baca Dasar Privasi</string>
     <plurals name="mine_delete_items_title">
         <item quantity="other">Padam %1$d item?</item>
