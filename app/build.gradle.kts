@@ -46,8 +46,8 @@ android {
     targetSdk = 37
     // F-Droid & CI pass VERSION_CODE/VERSION_NAME as env vars. Fallback to fixed
     // values when not set (deterministic, not epoch minutes).
-    versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1_000_000
-    versionName = System.getenv("VERSION_NAME") ?: "1.0.0"
+    versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1_003_000
+    versionName = System.getenv("VERSION_NAME") ?: "1.0.3"
     // Instrumented tests exercise the real Comix OCR/translation pipeline on an emulator.
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     // Where the in-app updater looks for releases. Pinned to the official repo: a fork build or CI run must not
