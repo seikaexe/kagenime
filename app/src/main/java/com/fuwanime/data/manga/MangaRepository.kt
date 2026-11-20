@@ -98,8 +98,8 @@ class MangaRepository(
     }
 
     /** Popular Komiku titles; [page] is 1-based, 10 per page. */
-    suspend fun popularKomiku(page: Int = 1, type: MangaType? = null): MangaPage =
-        komiku?.browse("meta_value_num", page, type?.slug) ?: MangaPage(emptyList(), 0, 0)
+    suspend fun popularKomiku(page: Int = 1, type: MangaType? = null, genre: String? = null): MangaPage =
+        komiku?.browse("meta_value_num", page, type?.slug, genre) ?: MangaPage(emptyList(), 0, 0)
 
     fun language(): String = appLanguage()
 
@@ -223,7 +223,7 @@ class MangaRepository(
         return emptyList()
     }
 
-    /** Aggregated genre list from all anime/manga sources used by Kagenime (deduped, cleaned). */
+    /** Aggregated genre list from all anime/manga sources used by FuwaStream (deduped, cleaned). */
     suspend fun tags(): List<MangaTag> = mangaGenresFromAllSources()
         .filter { mature() || !isMatureAnimeGenre(it) }
         .map { name -> MangaTag(id = name, name = name, group = "genre") }

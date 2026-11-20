@@ -80,6 +80,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import com.fuwanime.ui.theme.AnimeTheme
+import com.fuwanime.ui.theme.rememberAnimeSeed
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -279,6 +281,8 @@ fun MangaDetailRoute(mangaId: String, onBack: () -> Unit, onRead: (mangaId: Stri
     var collectionOpen by rememberSaveable { mutableStateOf(false) }
     var notificationOpen by rememberSaveable { mutableStateOf(false) }
 
+    val mangaSeed by rememberAnimeSeed(state.manga?.coverUrl)
+    AnimeTheme(mangaSeed) {
     Box(Modifier.fillMaxSize()) {
         val manga = state.manga
         when {
@@ -481,6 +485,7 @@ fun MangaDetailRoute(mangaId: String, onBack: () -> Unit, onRead: (mangaId: Stri
             onDismiss = { notificationOpen = false },
         )
     }
+    }
 }
 
 @Composable
@@ -518,7 +523,7 @@ private fun MangaDetailSkeleton() {
     }
 }
 
-private val SOURCE_NAMES = listOf("Shinigami", "Komiku", "Comix", "WEBTOON", "MangaKakalot", "MangaPark") // indexed by sourceRank
+private val SOURCE_NAMES = listOf("Shinigami", "Komiku", "MangaPark", "WEBTOON", "MangaKakalot", "MangaPark") // indexed by sourceRank
 private val LANG_LABELS = mapOf(ChapterLang.ID to R.string.manga_lang_id, ChapterLang.EN to R.string.manga_lang_en, ChapterLang.RAW to R.string.manga_lang_raw)
 
 /** "Ch. 12", or the chapter title for a oneshot without a number. */

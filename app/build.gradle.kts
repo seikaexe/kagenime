@@ -9,20 +9,7 @@ plugins {
 // Release builds never fall back to the debug key: a different certificate would break in-place updates.
 val releaseKeystore = System.getenv("KEYSTORE_PATH")?.let { file(it) }?.takeIf { it.exists() }
 val releasePassword = System.getenv("KEYSTORE_PASSWORD")
-val releaseAlias = System.getenv("KEY_ALIAS") ?: "fuwanime"
-// Public OAuth client ID for the Android app (installed-app clients have no secret). A CI secret
-// or -PgoogleOAuthClientId can override it; blank values fall back to this default.
-val googleOAuthClientId = System.getenv("GOOGLE_OAUTH_CLIENT_ID")?.takeIf { it.isNotBlank() }
-  ?: (findProperty("googleOAuthClientId") as String?)?.takeIf { it.isNotBlank() }
-  ?: "684800998743-mnt3hplc0la5dcpm1mi7t8uuq1aehuib.apps.googleusercontent.com"
-// Google rejects arbitrary custom redirect schemes. Installed-app clients use the reversed
-// client ID ("com.googleusercontent.apps.<id>:/oauth2redirect"), so derive it from the client ID.
-val googleOAuthScheme =
-  if (googleOAuthClientId.endsWith(".apps.googleusercontent.com")) {
-    "com.googleusercontent.apps.${googleOAuthClientId.removeSuffix(".apps.googleusercontent.com")}"
-  } else {
-    "kagenime"
-  }
+val releaseAlias = System.getenv("KEY_ALIAS") ?: "kagenime"
 // Only packaging tasks need signing. Match real task names so values like
 // `--tests com.fuwanime.MangaReleaseMappingTest` never trigger the release check.
 val buildingRelease = gradle.startParameter.taskNames.any { it.substringAfterLast(':').endsWith("Release") }
@@ -30,7 +17,7 @@ val allowUnsignedRelease = System.getenv("GITHUB_EVENT_NAME") == "pull_request" 
 if (buildingRelease && (releaseKeystore == null || releasePassword.isNullOrBlank()) && !allowUnsignedRelease) {
   throw GradleException(
     "Release signing is not configured. Set KEYSTORE_PATH, KEYSTORE_PASSWORD and KEY_ALIAS " +
-      "to the permanent FuwaStream keystore before building a release.",
+      "to the permanent Kagenime keystore before building a release.",
   )
 }
 
@@ -46,28 +33,13 @@ android {
     targetSdk = 37
     // F-Droid & CI pass VERSION_CODE/VERSION_NAME as env vars. Fallback to fixed
     // values when not set (deterministic, not epoch minutes).
-    versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1_003_000
-    versionName = System.getenv("VERSION_NAME") ?: "1.0.3"
+    versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1
+    versionName = System.getenv("VERSION_NAME") ?: "1.0.0"
     // Instrumented tests exercise the real Comix OCR/translation pipeline on an emulator.
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     // Where the in-app updater looks for releases. Pinned to the official repo: a fork build or CI run must not
     // point users at another repo (UPDATE_REPO overrides it for a fork that ships its own releases).
-    buildConfigField("String", "UPDATE_REPO", "\"${System.getenv("UPDATE_REPO") ?: "seikaexe/kagenime"}\"")
-    // Google OAuth (Authorization Code + PKCE). The client ID is issued for this package name and
-    // signing certificate in Google Cloud Console; see docs/google-login.md.
-    buildConfigField(
-      "String",
-      "GOOGLE_OAUTH_CLIENT_ID",
-      "\"$googleOAuthClientId\"",
-    )
-    // Browser fallback is only valid for installed-app (Android) clients, which use the reversed
-    // client ID redirect. Web application clients reject custom schemes with HTTP 400 invalid_request.
-    buildConfigField(
-      "boolean",
-      "GOOGLE_OAUTH_BROWSER_FALLBACK",
-      System.getenv("GOOGLE_OAUTH_BROWSER_FALLBACK")?.toBooleanStrictOrNull()?.toString() ?: "false",
-    )
-    manifestPlaceholders["googleOAuthScheme"] = googleOAuthScheme
+    buildConfigField("String", "UPDATE_REPO", "\"${System.getenv("UPDATE_REPO") ?: ""}\"")
   }
 
   signingConfigs {
@@ -126,9 +98,6 @@ dependencies {
   implementation(libs.androidx.compose.ui.graphics)
   implementation(libs.androidx.compose.ui.tooling.preview)
   implementation(libs.androidx.core.ktx)
-  implementation(libs.androidx.credentials)
-  implementation(libs.androidx.credentials.play.services.auth)
-  implementation(libs.googleid)
   implementation(libs.androidx.datastore.preferences)
   implementation(libs.androidx.lifecycle.runtime.compose)
   implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -138,6 +107,7 @@ dependencies {
   implementation(libs.androidx.room.runtime)
   implementation(libs.coil.compose)
   implementation(libs.androidx.palette.ktx)
+  implementation(libs.material.kolor)
   implementation(libs.haze)
   implementation(libs.coil.network.okhttp)
   implementation(libs.kotlinx.coroutines.android)

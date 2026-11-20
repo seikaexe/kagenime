@@ -18,26 +18,11 @@ import com.fuwanime.ui.library.FavoriteSort
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
 /** How the video fills its area: whole picture (letterboxed) or cropped to fill. */
 enum class VideoResize { FIT, ZOOM }
-
-/** The signed-in Google profile, or a local guest profile. No OAuth tokens are kept on disk. */
-data class AccountProfile(
-    val name: String,
-    val email: String = "",
-    val photoUrl: String = "",
-    val isGuest: Boolean = false,
-)
-
-sealed interface AccountState {
-    data object Loading : AccountState
-    data object SignedOut : AccountState
-    data class SignedIn(val profile: AccountProfile) : AccountState
-}
 
 data class AppSettings(
     val themeMode: ThemeMode = ThemeMode.DARK,
@@ -101,11 +86,6 @@ internal object Keys {
     val homeLastOpenMs = longPreferencesKey("home_last_open_ms")
     /** Age confirmation is a consent record, kept when user data is wiped. */
     val ageConfirmed = booleanPreferencesKey("age_confirmed")
-    val accountSignedIn = booleanPreferencesKey("account_signed_in")
-    val accountName = stringPreferencesKey("account_name")
-    val accountEmail = stringPreferencesKey("account_email")
-    val accountPhoto = stringPreferencesKey("account_photo")
-    val accountGuest = booleanPreferencesKey("account_guest")
     val backgroundAudio = booleanPreferencesKey("background_audio")
     val videoResize = stringPreferencesKey("video_resize")
     val mangaTranslate = booleanPreferencesKey("manga_translate")
@@ -183,57 +163,25 @@ class SettingsStore(private val context: Context) {
 
     val settings: Flow<AppSettings> = context.dataStore.data.map { it.toSettings() }
 
+    /** Like (1) / dislike (-1) the user gave an episode; 0 when none. Stored on this device only. */
+    fun reaction(episodeId: String): Flow<Int> =
+        context.dataStore.data.map { it[intPreferencesKey("react_$episodeId")] ?: 0 }
+
+    suspend fun setReaction(episodeId: String, value: Int) = context.dataStore.edit {
+        val key = intPreferencesKey("react_$episodeId")
+        if (value == 0) it.remove(key) else it[key] = value
+    }
+
     /** Timestamp of the previous Beranda visit; null on a fresh install. */
     suspend fun lastHomeOpen(): Long? = context.dataStore.data.first()[Keys.homeLastOpenMs]
 
     suspend fun markHomeOpened(now: Long = System.currentTimeMillis()) =
         context.dataStore.edit { it[Keys.homeLastOpenMs] = now }
 
-    /** False until the user confirms they are 14+ on the first launch. */
+    /** False until the user confirms they are 13+ on the first launch. */
     val ageConfirmed: Flow<Boolean> = context.dataStore.data.map { it[Keys.ageConfirmed] ?: false }
 
     suspend fun confirmAge() = context.dataStore.edit { it[Keys.ageConfirmed] = true }
-
-    /** Signed-in profile; null until the user finishes Google sign-in (or chooses guest). */
-    val account: Flow<AccountProfile?> = context.dataStore.data.map { prefs ->
-        if (prefs[Keys.accountSignedIn] != true) return@map null
-        val guest = prefs[Keys.accountGuest] == true
-        AccountProfile(
-            name = prefs[Keys.accountName].orEmpty().ifBlank { if (guest) "Tamu Kagenime" else "Kagenime" },
-            email = prefs[Keys.accountEmail].orEmpty(),
-            photoUrl = prefs[Keys.accountPhoto].orEmpty(),
-            isGuest = guest,
-        )
-    }
-
-    /** Account plus a first Loading emission, so the UI never flashes the login screen. */
-    val accountState: Flow<AccountState> = account
-        .map { profile -> if (profile == null) AccountState.SignedOut else AccountState.SignedIn(profile) }
-        .onStart { emit(AccountState.Loading) }
-
-    suspend fun saveGoogleAccount(name: String, email: String, photoUrl: String) = context.dataStore.edit {
-        it[Keys.accountSignedIn] = true
-        it[Keys.accountGuest] = false
-        it[Keys.accountName] = name.trim().ifBlank { email.substringBefore('@') }
-        it[Keys.accountEmail] = email
-        it[Keys.accountPhoto] = photoUrl
-    }
-
-    suspend fun saveGuestAccount() = context.dataStore.edit {
-        it[Keys.accountSignedIn] = true
-        it[Keys.accountGuest] = true
-        it[Keys.accountName] = "Tamu Kagenime"
-        it.remove(Keys.accountEmail)
-        it.remove(Keys.accountPhoto)
-    }
-
-    suspend fun signOutAccount() = context.dataStore.edit {
-        it.remove(Keys.accountSignedIn)
-        it.remove(Keys.accountGuest)
-        it.remove(Keys.accountName)
-        it.remove(Keys.accountEmail)
-        it.remove(Keys.accountPhoto)
-    }
 
     /**
      * Deletes every user-created preference (theme, qualities, OP marks, update bookkeeping).

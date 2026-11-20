@@ -74,8 +74,6 @@ class AppContainer(private val app: Application) {
     )
     private val database = FuwaDatabase.create(app)
     val settingsStore = SettingsStore(app)
-    /** Google OAuth (PKCE); the client ID comes from BuildConfig.GOOGLE_OAUTH_CLIENT_ID. */
-    val googleAuth by lazy { com.fuwanime.data.auth.GoogleAuth(app, httpClient, settingsStore) }
     val libraryRepository = LibraryRepository(database)
     val profileRepository = ProfileRepository(database)
     val mangaLibrary = MangaLibrary(database)

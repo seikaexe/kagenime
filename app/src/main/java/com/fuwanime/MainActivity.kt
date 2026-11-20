@@ -15,14 +15,13 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.fuwanime.data.local.AccountState
 import com.fuwanime.data.local.ThemeMode
-import com.fuwanime.ui.auth.LoginScreen
-import com.fuwanime.ui.legal.AgeGateScreen
+import com.fuwanime.ui.splash.SplashScreen
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import com.fuwanime.ui.navigation.FuwaNavHost
 import com.fuwanime.ui.navigation.LaunchTarget
 import com.fuwanime.ui.navigation.Shortcuts
@@ -35,7 +34,6 @@ import com.fuwanime.ui.player.PipController
 import com.fuwanime.ui.theme.FuwaTheme
 import com.fuwanime.data.notify.AppUpdateWorker
 import com.fuwanime.util.localizedContext
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -58,20 +56,14 @@ class MainActivity : ComponentActivity() {
         pip = PipController(this)
         if (intent != null && isFreshLaunch(savedInstanceState != null, intent.flags)) pendingTarget.value = intent.launchTarget()
         val store = (application as FuwaApp).container.settingsStore
-        val auth = (application as FuwaApp).container.googleAuth
-        auth.deliverRedirect(intent?.data)
         val settingsFlow = store.settings
-        val ageFlow = store.ageConfirmed
-        val accountFlow = store.accountState
 
         setContent {
             val settings by settingsFlow.collectAsStateWithLifecycle(initialValue = null)
-            val ageConfirmed by ageFlow.collectAsStateWithLifecycle(initialValue = null)
-            val accountState by accountFlow.collectAsStateWithLifecycle(initialValue = AccountState.Loading)
             // Wait for persisted settings so the first frame already uses the right theme.
             val current = settings ?: return@setContent
-            val confirmed = ageConfirmed ?: return@setContent
-            val scope = rememberCoroutineScope()
+            // Flash screen first (replaces the old age confirmation page); the app opens when it finishes.
+            var splashDone by rememberSaveable { mutableStateOf(false) }
 
             val dark = when (current.themeMode) {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
@@ -85,28 +77,20 @@ class MainActivity : ComponentActivity() {
                     isAppearanceLightNavigationBars = !dark
                 }
             }
-            // The notification prompt only appears after the age gate is cleared.
-            LaunchedEffect(confirmed) {
-                if (confirmed) requestNotificationPermissionIfNeeded()
+            // The notification prompt only appears once the flash screen is gone.
+            LaunchedEffect(splashDone) {
+                if (splashDone) requestNotificationPermissionIfNeeded()
             }
 
             FuwaTheme(current) {
                 CompositionLocalProvider(LocalPipController provides pip) {
-                    when {
-                        !confirmed -> AgeGateScreen(
-                            onConfirm = { scope.launch { store.confirmAge() } },
-                            onExit = { finish() },
-                        )
-                        accountState is AccountState.Loading -> Unit
-                        accountState is AccountState.SignedOut -> LoginScreen(
-                            auth = auth,
-                            onSignedIn = { },
-                            onGuest = { scope.launch { store.saveGuestAccount() } },
-                        )
-                        else -> FuwaNavHost(
+                    if (splashDone) {
+                        FuwaNavHost(
                             initialTarget = pendingTarget.value,
                             onInitialTargetConsumed = { pendingTarget.value = null },
                         )
+                    } else {
+                        SplashScreen(onFinished = { splashDone = true })
                     }
                 }
             }
@@ -115,7 +99,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        (application as FuwaApp).container.googleAuth.deliverRedirect(intent.data)
         // singleTask: taps on notifications, shortcuts and the widget while running arrive here.
         intent.launchTarget()?.let { pendingTarget.value = it }
     }

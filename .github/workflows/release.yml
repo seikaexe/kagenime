@@ -1,17 +1,38 @@
-name: Release Kagenime
+name: Release Build
 
 on:
   push:
+    # Push ke branch "release" memicu rilis (bump minor default) — jalur alternatif saat
+    # workflow_dispatch/tag-push tidak tersedia untuk actor tertentu.
+    branches: [release]
     tags:
+      # GitHub tag filters are globs, not regex. "v*" matches every v-prefixed SemVer tag.
       - "v*"
   workflow_dispatch:
     inputs:
-      version:
-        description: "Versi rilis (contoh: 1.0.0)"
+      bump_type:
+        description: "Tipe rilis versi (SemVer rule)"
         required: true
-        default: "1.0.0"
+        type: choice
+        default: "patch"
+        options:
+          - "patch"   # Fix / code fix / bug fix (+0.0.1)
+          - "minor"   # Update feat / fitur baru (+0.1.0)
+          - "major"   # Update besar (+1.0.0)
+          - "custom"  # Tentukan versi manual
+      custom_version:
+        description: "Versi kustom (diisi jika memilih 'custom', contoh: 2.2.0)"
+        required: false
+        type: string
+        default: ""
       prerelease:
-        description: "Tandai sebagai pre-release"
+        description: "Tandai rilis sebagai pre-release"
+        required: false
+        type: boolean
+        default: false
+      dry_run:
+        description: "Dry run (hanya build APK dan test, tanpa membuat tag & release)"
+        required: false
         type: boolean
         default: false
 
@@ -20,102 +41,166 @@ permissions:
 
 jobs:
   release:
+    name: Build & Publish Release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
         with:
           distribution: temurin
           java-version: 21
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@48b5f213c81028ace310571dc5ec0fbbca0b2947 # v4
         with:
           gradle-version: "9.3.1"
 
-      - name: Version
+      - name: Hitung versi SemVer
+        id: semver
         run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            VERSION="${GITHUB_REF_NAME#v}"
-          else
-            VERSION="${{ inputs.version }}"
-          fi
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::Invalid version '$VERSION' (expected X.Y.Z)"
-            exit 1
-          fi
-          echo "VERSION_NAME=$VERSION" >> "$GITHUB_ENV"
-          echo "TAG_NAME=v$VERSION" >> "$GITHUB_ENV"
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
-          echo "VERSION_CODE=$((1000000 + MAJOR * 10000 + MINOR * 100 + PATCH))" >> "$GITHUB_ENV"
+          set -e
 
-      - name: Configure signing
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            TAG_NAME="${GITHUB_REF_NAME}"
+            VERSION_NAME="${TAG_NAME#v}"
+            echo "Dipicu oleh push tag: $TAG_NAME"
+          else
+            BUMP_TYPE="${{ inputs.bump_type }}"
+            BUMP_TYPE="${BUMP_TYPE:-minor}"
+            CUSTOM_VER="${{ inputs.custom_version }}"
+
+            # Cari tag SemVer terbaru (format vX.Y.Z)
+            LATEST_TAG=$(git tag -l 'v*.*.*' | sort -V -r | head -n 1)
+            if [[ -z "$LATEST_TAG" ]]; then
+              LATEST_TAG="v2.1.0"
+            fi
+            echo "Tag SemVer dasar: $LATEST_TAG"
+
+            CLEAN_VER="${LATEST_TAG#v}"
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$CLEAN_VER"
+            MAJOR="${MAJOR:-2}"
+            MINOR="${MINOR:-1}"
+            PATCH="${PATCH:-0}"
+
+            case "$BUMP_TYPE" in
+              patch)
+                # 0.0.1: Fix / code fix / bug fix
+                PATCH=$((PATCH + 1))
+                VERSION_NAME="${MAJOR}.${MINOR}.${PATCH}"
+                ;;
+              minor)
+                # 0.1.0: Update feat / fitur baru
+                MINOR=$((MINOR + 1))
+                PATCH=0
+                VERSION_NAME="${MAJOR}.${MINOR}.${PATCH}"
+                ;;
+              major)
+                # 1.0.0 (misal 2.0.0 atau 3.0.0): Update besar
+                MAJOR=$((MAJOR + 1))
+                MINOR=0
+                PATCH=0
+                VERSION_NAME="${MAJOR}.${MINOR}.${PATCH}"
+                ;;
+              custom)
+                CLEAN_CUSTOM="${CUSTOM_VER#v}"
+                if [[ ! "$CLEAN_CUSTOM" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                  echo "Error: Format versi custom tidak valid: '$CUSTOM_VER'. Harus berupa X.Y.Z (contoh: 2.2.0)" >&2
+                  exit 1
+                fi
+                VERSION_NAME="$CLEAN_CUSTOM"
+                ;;
+              *)
+                echo "Error: Tipe bump tidak dikenal: '$BUMP_TYPE'" >&2
+                exit 1
+                ;;
+            esac
+            TAG_NAME="v${VERSION_NAME}"
+            echo "Versi baru dihitung: $VERSION_NAME (Tag: $TAG_NAME)"
+          fi
+
+          echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
+          echo "TAG_NAME=$TAG_NAME" >> "$GITHUB_ENV"
+          # Version code dari SemVer, 40M offset: harus di atas build lama (30M + run build.yml, sudah >30000100).
+          # Run number release.yml mulai dari 1, jadi 30M + run bikin APK rilis "lebih tua" dan gagal di-install.
+          IFS='.' read -r V_MAJOR V_MINOR V_PATCH <<< "${VERSION_NAME%%-*}"
+          echo "VERSION_CODE=$((40000000 + V_MAJOR * 1000000 + V_MINOR * 1000 + V_PATCH))" >> "$GITHUB_ENV"
+
+      - name: Decode signing keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
-          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$KEYSTORE_PASSWORD" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/kagenime-release.jks"
-            echo "KEYSTORE_PATH=$RUNNER_TEMP/kagenime-release.jks" >> "$GITHUB_ENV"
-            echo "KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
-            echo "KEY_ALIAS=${KEY_ALIAS:-fuwanime}" >> "$GITHUB_ENV"
-          else
-            echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/keystore/kagenime-release.jks" >> "$GITHUB_ENV"
-            echo "KEYSTORE_PASSWORD=kagenime123" >> "$GITHUB_ENV"
-            echo "KEY_ALIAS=fuwanime" >> "$GITHUB_ENV"
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::error::Release signing secrets are missing."
+            exit 1
           fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          EFFECTIVE_ALIAS="${KEY_ALIAS:-fuwanime}"
+          if ! keytool -list -keystore "$RUNNER_TEMP/release.jks" -storepass "$KEYSTORE_PASSWORD" -alias "$EFFECTIVE_ALIAS" >/dev/null 2>&1; then
+            EFFECTIVE_ALIAS=$(keytool -list -keystore "$RUNNER_TEMP/release.jks" -storepass "$KEYSTORE_PASSWORD" 2>/dev/null \
+              | awk -F, '/PrivateKeyEntry/ { gsub(/^[[:space:]]+|[[:space:]]+$/, "", $1); print $1; exit }')
+          fi
+          if [ -z "$EFFECTIVE_ALIAS" ]; then
+            echo "::error::No private-key alias was found in the release keystore."
+            exit 1
+          fi
+          echo "KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+          echo "KEY_ALIAS=$EFFECTIVE_ALIAS" >> "$GITHUB_ENV"
 
       - name: Test and build universal APK
         env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          # Fork builds must check for updates in the fork, not the production repository.
           UPDATE_REPO: ${{ github.repository }}
-          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
         run: gradle testDebugUnitTest assembleRelease -PabiSplits=false --stacktrace
 
-      - name: Collect kagenime.apk
+      - name: Verify release signing certificate
+        # Forks sign with their own keystore; the pin guards the upstream key only.
+        if: github.repository == 'fuwanime/fuwastream'
         run: |
-          mkdir -p dist
-          APK=$(find app/build/outputs/apk/release -maxdepth 1 -name '*.apk' | head -1)
-          test -n "$APK"
-          cp "$APK" dist/kagenime.apk
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1)
-          "$APKSIGNER" verify --print-certs dist/kagenime.apk | tee apksigner.txt
-          grep 'certificate SHA-256 digest' apksigner.txt | head -1
+          APK=$(find app/build/outputs/apk/release -maxdepth 1 -name '*.apk' | head -1)
+          "$APKSIGNER" verify --print-certs "$APK" | tee "$RUNNER_TEMP/apksigner.txt"
+          CERT=$(grep 'certificate SHA-256 digest' "$RUNNER_TEMP/apksigner.txt" \
+            | head -1 | awk '{print $NF}' | tr -d ':' | tr 'A-F' 'a-f')
+          echo "APK signing certificate SHA-256: $CERT"
+          test "$CERT" = "9d192491f8c087ece5ed36f361e16503b07ef1980070ca2939bbfd6a41fc4848"
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Kagenime-${{ env.VERSION_NAME }}
-          path: dist/kagenime.apk
-
-      - name: Upload Release Asset
+      - name: Rename artifacts
         run: |
           mkdir -p dist
           APK=$(find app/build/outputs/apk/release -maxdepth 1 -name '*.apk' | head -1)
           test -n "$APK"
-          cp "$APK" dist/kagenime.apk
-          # uncomment baris bawah ini kalau mau pakai softprops action-gh-release
-          # (akan menambah file ke release yang sudah dibuat di step sebelumnya)
-          # cp dist/kagenime.apk dist/kagenime-${VERSION_NAME}.apk
+          cp "$APK" "dist/FuwaStream-${VERSION_NAME}.apk"
 
-      - name: Create Git tag
-        if: github.event_name == 'workflow_dispatch'
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: FuwaStream-${{ env.VERSION_NAME }}
+          path: dist/*
+
+      - name: Create and push Git tag
+        if: (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/release') && !inputs.dry_run
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           if ! git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
-            git tag -a "$TAG_NAME" -m "Kagenime $VERSION_NAME"
+            git tag -a "$TAG_NAME" -m "FuwaStream $VERSION_NAME"
             git push origin "$TAG_NAME"
+          else
+            echo "Tag $TAG_NAME sudah ada."
           fi
 
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
+        if: (!inputs.dry_run)
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           tag_name: ${{ env.TAG_NAME }}
-          name: Kagenime ${{ env.VERSION_NAME }}
+          name: FuwaStream ${{ env.VERSION_NAME }}
           target_commitish: ${{ github.sha }}
-          files: dist/kagenime.apk
+          files: dist/*
           generate_release_notes: true
           make_latest: ${{ !inputs.prerelease }}
           prerelease: ${{ inputs.prerelease || false }}

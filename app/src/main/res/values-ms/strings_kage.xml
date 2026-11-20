@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="kage_search_hint">Cari anime di sini</string>
+    <string name="kage_exp">EXP</string>
+    <string name="kage_level">Lvl. %1$d</string>
+    <string name="kage_recent">Terakhir Ditonton</string>
+    <string name="kage_see_more">Lihat Lagi</string>
+    <string name="kage_hot">Hot Anime</string>
+    <string name="kage_see_rank">Lihat Kedudukan</string>
+    <string name="kage_new_update">Kemas Kini Anime Baharu</string>
+    <string name="kage_like">Suka</string>
+    <string name="kage_dislike">Tidak Suka</string>
+    <string name="kage_share">Kongsi</string>
+    <string name="kage_quality">Kualiti</string>
+    <string name="kage_download">Muat Turun</string>
+    <string name="kage_episode_list">Senarai Episod</string>
+    <string name="kage_notifications">Pemberitahuan</string>
+    <string name="kage_notif_empty">Belum ada keluaran baharu</string>
+    <string name="kage_default_user">Pengguna Kagenime</string>
+    <string name="kage_rate">Beri Penilaian</string>
+    <string name="kage_share_text">Tonton %1$s Episod %2$s di Kagenime</string>
+    <string name="kage_group_quality">Kualiti</string>
+    <string name="kage_version_desc">Versi aplikasi semasa</string>
+    <string name="kage_eps_short">Ep %1$s</string>
+    <string name="kage_views">%1$s tontonan</string>
+    <string name="splash_tagline">Anime &amp; manga, tanpa iklan</string>
+</resources>

@@ -36,7 +36,7 @@ fun releaseFromTag(repo: String, tag: String): GitHubRelease {
         tagName = tag,
         name = "Kagenime $version",
         htmlUrl = "$base/tag/$tag",
-        assets = listOf(GitHubAsset("kagenime.apk", "$base/download/$tag/kagenime.apk")),
+        assets = listOf(GitHubAsset("Kagenime-$version.apk", "$base/download/$tag/Kagenime-$version.apk")),
     )
 }
 
@@ -54,7 +54,7 @@ object GitHubApi {
     private val adapter = moshi.adapter(GitHubRelease::class.java)
 
     /** Returns the latest release, or null on any failure (offline, ...). */
-    fun latest(): GitHubRelease? = fromApi() ?: fromRedirect()
+    fun latest(): GitHubRelease? = if (BuildConfig.UPDATE_REPO.isBlank()) null else fromApi() ?: fromRedirect()
 
     // The anonymous API allows 60 requests an hour per IP, so on shared or mobile networks it often answers 403.
     private fun fromRedirect(): GitHubRelease? = runCatching {

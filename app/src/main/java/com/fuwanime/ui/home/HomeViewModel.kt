@@ -12,9 +12,6 @@ import com.fuwanime.data.UpdateRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import com.fuwanime.data.AppInstaller
-import com.fuwanime.data.ProfileRepository
-import com.fuwanime.data.ProfileUi
-import com.fuwanime.data.local.AccountProfile
 import com.fuwanime.data.local.SettingsStore
 import com.fuwanime.data.remote.NetworkStatus
 import com.fuwanime.data.local.ContentPreferenceEntity
@@ -101,17 +98,15 @@ class HomeViewModel(
     val backup: BackupRepository,
     private val mangaLibrary: MangaLibrary,
     private val mangaRepository: MangaRepository,
-    private val profile: ProfileRepository,
     private val installer: AppInstaller? = null,
+    profileRepository: com.fuwanime.data.ProfileRepository? = null,
 ) : ViewModel() {
 
-    /** Local level/XP, shown in the Beranda account card. */
-    val profileUi: StateFlow<ProfileUi?> =
-        profile.observe().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+    /** Local profile (name, level, EXP) for the account card on top of Beranda. */
+    val profile: StateFlow<com.fuwanime.data.ProfileUi?> =
+        (profileRepository?.observe() ?: kotlinx.coroutines.flow.flowOf(null))
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    /** The signed-in Google profile (or guest), shown at the top of Beranda. */
-    val account: StateFlow<AccountProfile?> =
-        settingsStore.account.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** A fresh install (nothing watched or saved) gets one offer to restore a backup file. */
     val showRestorePrompt: StateFlow<Boolean> =

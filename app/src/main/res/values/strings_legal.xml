@@ -9,7 +9,7 @@
     <string name="legal_privacy_children">ANAK-ANAK\nAplikasi ditujukan untuk pengguna berusia 13 tahun ke atas. Kami tidak dengan sengaja mengumpulkan data dari anak di bawah 13 tahun, dan memang tidak mengumpulkan data pribadi apa pun dari siapa pun.</string>
     <string name="legal_privacy_security">KEAMANAN\nData tersimpan di penyimpanan privat aplikasi yang dilindungi sandbox Android. Tidak ada transmisi data pribadi ke server kami karena server kami tidak ada.</string>
     <string name="legal_privacy_rights">HAK DAN PENGHAPUSAN DATA\nKamu dapat menghapus data kapan saja langsung di aplikasi:\nPengaturan → Data → Hapus semua data.\nTindakan ini menghapus favorit, riwayat tontonan, riwayat pencarian, pengaturan, dan file unduhan secara permanen dari perangkat. Menghapus aplikasi juga menghapus seluruh datanya.</string>
-    <string name="legal_privacy_changes">PERUBAHAN KEBIJAKAN\nPerubahan kebijakan akan dirilis bersama versi baru aplikasi dan tercatat di repositori publik: github.com/seikaexe/kagenime.</string>
+    <string name="legal_privacy_changes">PERUBAHAN KEBIJAKAN\nPerubahan kebijakan akan dirilis bersama versi baru aplikasi dan tercatat di repositori publik: kagenime.app.</string>
     <string name="legal_privacy_contact">KONTAK\nPertanyaan tentang privasi: fuwanimereal@gmail.com</string>
     <string name="legal_terms_updated">Terakhir diperbarui: 1 November 2026</string>
     <string name="legal_terms_acceptance">1. PENERIMAAN\nDengan memasang dan menggunakan Kagenime, kamu menyetujui ketentuan ini. Jika tidak setuju, silakan berhenti menggunakan aplikasi dan hapus pemasangannya.</string>

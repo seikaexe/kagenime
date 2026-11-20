@@ -40,9 +40,9 @@ import com.fuwanime.util.legalLocale
  */
 object LegalText {
 
-    const val DEVELOPER_NAME = "Kagenime Community (YuzakiNetwork)"
+    const val DEVELOPER_NAME = "Kagenime"
     const val DEVELOPER_EMAIL = "fuwanimereal@gmail.com"
-    const val DEVELOPER_WEB = "https://github.com/seikaexe/kagenime"
+    const val DEVELOPER_WEB = "https://kagenime.app"
     const val COLLABORATOR_NAME = "Andra"
     const val COLLABORATOR_EMAIL = "andrahijati@gmail.com"
 

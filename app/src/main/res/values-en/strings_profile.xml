@@ -1,7 +1,7 @@
 <resources>
     <string name="profile_title">Profile</string>
     <string name="profile_settings_desc">Level, quests and borders</string>
-    <string name="profile_default_name">Fuwa</string>
+    <string name="profile_default_name">Kagenime</string>
     <string name="profile_edit_name">Edit name</string>
     <string name="profile_name_label">Name</string>
     <string name="profile_save">Save</string>

@@ -1,7 +1,7 @@
 <resources>
     <string name="profile_title">Profil</string>
     <string name="profile_settings_desc">Tahap, misi dan sempadan</string>
-    <string name="profile_default_name">Fuwa</string>
+    <string name="profile_default_name">Kagenime</string>
     <string name="profile_edit_name">Tukar nama</string>
     <string name="profile_name_label">Nama</string>
     <string name="profile_save">Simpan</string>

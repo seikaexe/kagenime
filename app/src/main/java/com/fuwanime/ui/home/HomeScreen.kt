@@ -1,6 +1,12 @@
 package com.fuwanime.ui.home
 
 import com.fuwanime.R
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.Visibility
+import com.fuwanime.data.ProfileUi
+import com.fuwanime.ui.theme.KageColors
 import com.fuwanime.util.typeLabel
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -9,7 +15,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.ui.res.stringResource
 import com.fuwanime.ui.settings.rememberRestoreFlow
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.rounded.Restore
 import com.fuwanime.ui.components.FuwaSnackbarHost
 import com.fuwanime.ui.components.IconWithTooltip
@@ -17,8 +22,9 @@ import androidx.compose.foundation.layout.heightIn
 import com.fuwanime.ui.components.LocalNavBarPadding
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,6 +35,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -50,17 +57,16 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material.icons.rounded.SystemUpdateAlt
-import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material3.Button
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -76,9 +82,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.fuwanime.ui.theme.PlusJakarta
 import com.fuwanime.ui.components.ImageScrim
+import com.fuwanime.ui.components.Pill
 import com.fuwanime.ui.components.TagChip
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
@@ -89,15 +97,11 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.BlurredEdgeTreatment
@@ -120,9 +124,7 @@ import com.fuwanime.ui.motion.sharedKey
 import com.fuwanime.ui.motion.pressScale
 import com.fuwanime.ui.motion.OpenAnime
 import com.fuwanime.data.Anime
-import com.fuwanime.data.ProfileUi
 import com.fuwanime.data.UpdateRepository
-import com.fuwanime.data.local.AccountProfile
 import com.fuwanime.data.local.MangaHistoryEntity
 import com.fuwanime.data.local.WatchHistoryEntity
 import com.fuwanime.ui.components.ContinueWatchingCard
@@ -137,12 +139,7 @@ import com.fuwanime.util.compactNumber
 import com.fuwanime.util.relativeTime
 import com.fuwanime.util.fuwaViewModel
 import kotlinx.coroutines.delay
-import java.util.Calendar
 
-val QuickGenres = listOf(
-    "Action", "Fantasy", "Romance", "Comedy", "Isekai", "Slice of Life",
-    "School", "Drama", "Supernatural", "Sci-Fi", "Mystery", "Sports",
-)
 
 @Composable
 fun HomeRoute(
@@ -153,13 +150,13 @@ fun HomeRoute(
     onSettings: () -> Unit,
     onSchedule: () -> Unit,
     onExplore: (genre: String?) -> Unit,
-    onLibrary: () -> Unit,
-    onProfile: () -> Unit,
+    onHistory: () -> Unit = {},
 ) {
     val vm: HomeViewModel = fuwaViewModel { c, _ ->
         HomeViewModel(
             c.animeRepository, c.libraryRepository, c.updateRepository, c.settingsStore,
-            c.networkStatus, c.backupRepository, c.mangaLibrary, c.mangaRepository, c.profileRepository, c.appInstaller,
+            c.networkStatus, c.backupRepository, c.mangaLibrary, c.mangaRepository, c.appInstaller,
+            c.profileRepository,
         )
     }
     val state by vm.state.collectAsStateWithLifecycle()
@@ -169,9 +166,8 @@ fun HomeRoute(
     LaunchedEffect(install) {
         if (install is HomeViewModel.Install.NeedsPermission) vm.permissionIntent()?.let { permissionLauncher.launch(it) }
     }
+    val profile by vm.profile.collectAsStateWithLifecycle()
     val favoriteIds by vm.favoriteIds.collectAsStateWithLifecycle()
-    val profile by vm.profileUi.collectAsStateWithLifecycle()
-    val account by vm.account.collectAsStateWithLifecycle()
     val showRestore by vm.showRestorePrompt.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { vm.onOpened() }
     val snackbar = remember { SnackbarHostState() }
@@ -184,9 +180,8 @@ fun HomeRoute(
     Box(Modifier.fillMaxSize()) {
         HomeScreen(
             state = state,
-            favoriteIds = favoriteIds,
-            account = account,
             profile = profile,
+            favoriteIds = favoriteIds,
             onToggleFavorite = vm::toggleFavorite,
             todayLabel = stringResource(vm.today.full),
             onRefresh = vm::refresh,
@@ -205,8 +200,7 @@ fun HomeRoute(
             onSettings = onSettings,
             onSchedule = onSchedule,
             onExplore = onExplore,
-            onLibrary = onLibrary,
-            onProfile = onProfile,
+            onHistory = onHistory,
         )
         FuwaSnackbarHost(
             snackbar,
@@ -215,13 +209,19 @@ fun HomeRoute(
     }
 }
 
+
+private val CardBg = Color(0xFF292A2C)
+private val CardBorder = Color(0xFF45464A)
+private val SearchBg = Color(0xFF2B2B31)
+private val SearchBorder = Color(0xFF494951)
+private val ChipBg = Color(0xFF3C3D41)
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun HomeScreen(
     state: HomeUiState,
-    favoriteIds: Set<String>,
-    account: AccountProfile?,
     profile: ProfileUi?,
+    favoriteIds: Set<String>,
     onToggleFavorite: (Anime) -> Unit,
     todayLabel: String,
     onRefresh: () -> Unit,
@@ -240,662 +240,573 @@ private fun HomeScreen(
     onSettings: () -> Unit,
     onSchedule: () -> Unit,
     onExplore: (String?) -> Unit,
-    onLibrary: () -> Unit,
-    onProfile: () -> Unit,
+    onHistory: () -> Unit,
 ) {
-    val listState = rememberLazyListState()
     val feed = state.feed
     var showUpdateSheet by remember { mutableStateOf(false) }
+    var showNotifications by remember { mutableStateOf(false) }
+    // Hot Anime = the 50 most watched titles, ranked 1..50, scrolled from left to right.
+    val hot = remember(feed.popular) { feed.popular.take(50) }
+    val top = remember(hot) { hot.filter { it.poster.isNotBlank() || it.cover.isNotBlank() }.take(5) }
 
-    PullToRefreshBox(isRefreshing = feed.refreshing, onRefresh = onRefresh, modifier = Modifier.fillMaxSize()) {
-        LazyColumn(state = listState, contentPadding = PaddingValues(bottom = 24.dp + LocalNavBarPadding.current), modifier = Modifier.fillMaxSize()) {
-            item(key = "accountHeader") {
-                HomeAccountHeader(
-                    account = account,
-                    profile = profile,
-                    onProfile = onProfile,
-                    onSettings = onSettings,
-                    onSearch = onSearch,
-                )
-            }
-
-            if (update != null) {
-                item(key = "updateBanner") {
-                    UpdateBanner(update, onClick = { showUpdateSheet = true }, onDismiss = onDismissUpdate)
+    Box(Modifier.fillMaxSize()) {
+        PullToRefreshBox(isRefreshing = feed.refreshing, onRefresh = onRefresh, modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                contentPadding = PaddingValues(bottom = 96.dp + LocalNavBarPadding.current),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                item(key = "account") {
+                    AccountCard(
+                        profile = profile,
+                        unread = feed.latest.size,
+                        onBell = { showNotifications = true },
+                        modifier = Modifier.statusBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp),
+                    )
                 }
-            }
+                item(key = "search") {
+                    SearchBar(onSearch, Modifier.padding(horizontal = 16.dp))
+                }
+                item(key = "top") {
+                    Spacer(Modifier.height(16.dp))
+                    val heroLoading = feed.loading && top.isEmpty()
+                    Crossfade(heroLoading, animationSpec = tween(Motion.Medium), label = "hero") { loading ->
+                        if (loading) {
+                            SkeletonBox(
+                                Modifier.padding(horizontal = 16.dp).fillMaxWidth().aspectRatio(2.2f),
+                                shape = RoundedCornerShape(28.dp),
+                            )
+                        } else if (top.isNotEmpty()) {
+                            TopPager(top) { onAnimeClick(it, "home-hero") }
+                        }
+                    }
+                }
 
-            if (showRestore) {
-                item(key = "restoreBanner") { RestoreBanner(onRestore, onDismissRestore) }
-            }
+                if (update != null) {
+                    item(key = "updateBanner") { UpdateBanner(update, onClick = { showUpdateSheet = true }, onDismiss = onDismissUpdate) }
+                }
+                if (showRestore) {
+                    item(key = "restoreBanner") { RestoreBanner(onRestore, onDismissRestore) }
+                }
+                if (feed.error != null && feed.popular.isEmpty()) {
+                    item { ErrorState(feed.error, onRefresh) }
+                }
 
-            if (state.updates.total > 0) {
-                item(key = "updatesSummary") { UpdatesSummary(state.updates) }
-            }
-
-            if (feed.error != null && feed.popular.isEmpty()) {
-                item { ErrorState(feed.error, onRefresh) }
-            }
-
-            if (state.continueItems.isNotEmpty()) {
-                item(key = "cw") {
-                    Section(
-                        stringResource(R.string.home_last_watched),
-                        onSeeAll = onLibrary,
-                        seeAllLabel = stringResource(R.string.home_see_more),
-                    ) {
-                        LazyRow(
-                            contentPadding = PaddingValues(horizontal = 20.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            items(
-                                state.continueItems,
-                                key = {
-                                    when (it) {
-                                        is HomeContinue.Anime -> "a-" + it.entry.episodeId
-                                        is HomeContinue.Manga -> "m-" + it.entry.chapterId
+                if (state.continueItems.isNotEmpty()) {
+                    item(key = "history") {
+                        KageSection(stringResource(R.string.kage_recent), stringResource(R.string.kage_see_more), onHistory) {
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                items(
+                                    state.continueItems,
+                                    key = {
+                                        when (it) {
+                                            is HomeContinue.Anime -> "a-" + it.entry.episodeId
+                                            is HomeContinue.Manga -> "m-" + it.entry.chapterId
+                                        }
+                                    },
+                                ) { item ->
+                                    when (item) {
+                                        is HomeContinue.Anime -> HistoryCard(item.entry) { onContinue(item.entry) }
+                                        is HomeContinue.Manga -> MangaContinueCard(
+                                            item.entry,
+                                            onClick = { onMangaContinue(item.entry) },
+                                            onHide = { onHideContinue(item) },
+                                        )
                                     }
-                                },
-                            ) { item ->
-                                when (item) {
-                                    is HomeContinue.Anime -> CompactAnimeContinue(
-                                        item.entry,
-                                        onClick = { onContinue(item.entry) },
-                                        onHide = { onHideContinue(item) },
-                                    )
-                                    is HomeContinue.Manga -> CompactMangaContinue(
-                                        item.entry,
-                                        onClick = { onMangaContinue(item.entry) },
-                                        onHide = { onHideContinue(item) },
-                                    )
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            if (state.collectionLatest.isNotEmpty()) {
-                item(key = "collectionLatest") {
-                    Section(stringResource(R.string.ux_collection_updates)) {
-                        PosterRow(
-                            state.collectionLatest.map { it.anime },
-                            loading = false,
-                            onClick = { onAnimeClick(it, "home-collection") },
-                            origin = "home-collection",
-                            caption = { a -> state.collectionLatest.firstOrNull { it.anime.id == a.id }?.episodeLabel },
-                        )
-                    }
-                }
-            }
-
-            if (feed.loading || feed.latest.isNotEmpty()) {
-                item(key = "latest") {
-                    Section(stringResource(R.string.browse_home_latest)) {
-                        val releases = remember(feed.latest) { feed.latest.associateBy { it.anime.id } }
-                        val res = LocalContext.current.resources
-                        PosterRow(feed.latest.map { it.anime }, feed.loading, { onAnimeClick(it, "home-latest") }, origin = "home-latest", isNew = { true }, caption = { a ->
-                            releases[a.id]?.let { r ->
-                                listOf(r.episodeLabel.trim(), relativeTime(res, r.updatedAt))
-                                    .filter { it.isNotBlank() }
-                                    .joinToString(" · ")
-                                    .ifBlank { null }
+                if (feed.loading || hot.isNotEmpty()) {
+                    item(key = "hot") {
+                        KageSection(stringResource(R.string.kage_hot), stringResource(R.string.kage_see_rank), { onExplore(null) }) {
+                            if (hot.isEmpty()) {
+                                LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    items(4) { SkeletonBox(Modifier.width(150.dp).height(260.dp), shape = RoundedCornerShape(20.dp)) }
+                                }
+                            } else {
+                                HotRow(hot) { onAnimeClick(it, "home-popular") }
                             }
-                        })
+                        }
                     }
                 }
-            }
 
-            if (feed.loading || feed.today.isNotEmpty()) {
-                item(key = "today") {
-                    Section(stringResource(R.string.browse_home_today), subtitle = todayLabel, onSeeAll = onSchedule) {
-                        val releaseFmt = stringResource(R.string.browse_release_at, "%1\$s")
-                        PosterRow(feed.today, feed.loading, { onAnimeClick(it, "home-today") }, origin = "home-today", caption = { a ->
-                            a.nextAirTime.takeIf { it.isNotBlank() }?.let { releaseFmt.format(airTime(it)) }
-                        })
+                if (feed.loading || feed.latest.isNotEmpty()) {
+                    item(key = "latest") {
+                        KageSection(stringResource(R.string.kage_new_update), null, null) {
+                            val releases = remember(feed.latest) { feed.latest.associateBy { it.anime.id } }
+                            val res = LocalContext.current.resources
+                            PosterRow(feed.latest.map { it.anime }, feed.loading, { onAnimeClick(it, "home-latest") }, origin = "home-latest", isNew = { true }, caption = { a ->
+                                releases[a.id]?.let { r ->
+                                    listOf(r.episodeLabel.trim(), relativeTime(res, r.updatedAt))
+                                        .filter { it.isNotBlank() }
+                                        .joinToString(" · ")
+                                        .ifBlank { null }
+                                }
+                            })
+                        }
                     }
                 }
             }
+        }
 
-            if (feed.loading || feed.thisSeason.isNotEmpty()) {
-                item(key = "season") {
-                    Section(stringResource(R.string.browse_home_airing), subtitle = stringResource(R.string.browse_home_airing_subtitle)) {
-                        val seasonRes = LocalContext.current.resources
-                        val viewsFmt = stringResource(R.string.browse_views, "%1\$s")
-                        PosterRow(
-                            feed.thisSeason, feed.loading, { onAnimeClick(it, "home-season") },
-                            origin = "home-season", caption = { viewsFmt.format(compactNumber(seasonRes, it.views)) },
-                        )
-                    }
-                }
-            }
-
-            item(key = "popular") {
-                Section(
-                    stringResource(R.string.home_top_anime),
-                    subtitle = stringResource(R.string.home_top_anime_subtitle),
-                    onSeeAll = { onExplore(null) },
-                ) {
-                    val top = feed.popular.take(10)
-                    if (top.isEmpty()) {
-                        PosterRow(top, feed.loading, { onAnimeClick(it, "home-popular") })
-                    } else {
-                        CompactRankedRow(top, { onAnimeClick(it, "home-popular") }, origin = "home-popular")
-                    }
-                }
-            }
-
-            item(key = "genres") {
-                Section(stringResource(R.string.browse_home_genres)) {
-                    FlowRow(
-                        Modifier.padding(horizontal = 20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        QuickGenres.forEach { g -> TagChip(g, onClick = { onExplore(g) }) }
-                    }
-                }
-            }
+        // Round white settings button, bottom-right, like the design.
+        Box(
+            Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 16.dp, bottom = 16.dp + LocalNavBarPadding.current)
+                .size(56.dp)
+                .shadow(6.dp, CircleShape)
+                .clip(CircleShape)
+                .background(Color.White)
+                .clickable(onClick = onSettings),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Rounded.Settings, stringResource(R.string.browse_settings), tint = Color(0xFF161719), modifier = Modifier.size(30.dp))
         }
     }
 
     if (showUpdateSheet && update != null) {
         UpdateSheet(update, install, onInstall = onInstallUpdate, onDismiss = { showUpdateSheet = false })
     }
+    if (showNotifications) {
+        NotificationsSheet(feed.latest, onDismiss = { showNotifications = false }, onOpen = { showNotifications = false; onAnimeClick(it, "home-bell") })
+    }
 }
 
+/** Account card: avatar, name, level chip, bell, and the EXP bar. */
 @Composable
-private fun HomeAccountHeader(
-    account: AccountProfile?,
-    profile: ProfileUi?,
-    onProfile: () -> Unit,
-    onSettings: () -> Unit,
-    onSearch: () -> Unit,
-) {
-    var showMinigame by remember { mutableStateOf(false) }
-    val name = account?.name?.takeIf { it.isNotBlank() } ?: stringResource(R.string.account_guest)
-    val firstName = name.substringBefore(' ')
-    val hour = remember { Calendar.getInstance().get(Calendar.HOUR_OF_DAY) }
-    val greeting = stringResource(
-        when {
-            hour in 4..10 -> R.string.home_greet_morning
-            hour in 11..15 -> R.string.home_greet_afternoon
-            hour in 16..18 -> R.string.home_greet_evening
-            else -> R.string.home_greet_night
-        },
-    )
+private fun AccountCard(profile: ProfileUi?, unread: Int, onBell: () -> Unit, modifier: Modifier = Modifier) {
+    val name = profile?.name?.takeIf { it.isNotBlank() } ?: stringResource(R.string.kage_default_user)
     val level = profile?.level ?: 1
     val xp = profile?.xp ?: 0L
     val start = profile?.levelStartXp ?: 0L
     val next = profile?.nextLevelXp
-    val progress = if (next != null && next > start) {
-        ((xp - start).toFloat() / (next - start).toFloat()).coerceIn(0f, 1f)
-    } else {
-        1f
-    }
-    val initial = name.trim().firstOrNull()?.uppercase() ?: "K"
-
-    Column(Modifier.statusBarsPadding()) {
-        Row(
-            Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Wordmark()
-            Spacer(Modifier.weight(1f))
-            IconButton(onClick = onSettings) {
-                Icon(Icons.Rounded.Settings, stringResource(R.string.browse_settings))
-            }
-        }
-
-        Surface(
-            onClick = onProfile,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 2.dp),
-            shape = RoundedCornerShape(22.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        ) {
-            Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        Modifier
-                            .size(52.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer)
-                            .border(2.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        if (!account?.photoUrl.isNullOrBlank()) {
-                            NetImage(account.photoUrl, Modifier.fillMaxSize(), name)
-                        } else {
-                            Text(
-                                initial,
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            )
-                        }
+    val fraction = if (next != null && next > start) ((xp - start).toFloat() / (next - start)).coerceIn(0f, 1f) else 1f
+    val nf = remember { java.text.NumberFormat.getInstance(java.util.Locale("id", "ID")) }
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        color = CardBg,
+        border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
+    ) {
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier.size(60.dp).clip(CircleShape).background(Color.White),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Box(Modifier.size(54.dp).clip(CircleShape).background(KageColors.Blue), contentAlignment = Alignment.Center) {
+                        Text(name.take(1).uppercase(), color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold)
                     }
-                    Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                        Text(
-                            "$greeting, $firstName!",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.ExtraBold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            stringResource(R.string.home_age_notice),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(top = 2.dp),
-                        )
-                        Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                stringResource(R.string.mine_age_badge),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(7.dp))
-                                    .background(MaterialTheme.colorScheme.primaryContainer)
-                                    .padding(horizontal = 7.dp, vertical = 2.dp),
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Text(
-                                stringResource(R.string.account_level, level),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(7.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                                    .padding(horizontal = 7.dp, vertical = 2.dp),
-                            )
-                        }
-                    }
-                    Icon(
-                        Icons.Rounded.ChevronRight,
-                        stringResource(R.string.account_open),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(22.dp),
-                    )
                 }
-                Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f).padding(start = 16.dp)) {
+                    Text(name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Spacer(Modifier.height(6.dp))
                     Text(
-                        "$xp XP",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    LinearProgressIndicator(
-                        progress = { progress },
-                        modifier = Modifier.weight(1f).padding(horizontal = 10.dp).height(7.dp).clip(RoundedCornerShape(4.dp)),
-                        color = MaterialTheme.colorScheme.primary,
-                        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                        drawStopIndicator = {},
-                        gapSize = 0.dp,
-                    )
-                    Text(
-                        next?.let { "$it XP" } ?: "MAX",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
-
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Surface(
-                onClick = onSearch,
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-            ) {
-                Row(Modifier.height(48.dp).padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Rounded.Search, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        stringResource(R.string.home_search_hint),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-            Surface(
-                onClick = { showMinigame = true },
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-            ) {
-                Row(Modifier.height(48.dp).padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Rounded.SportsEsports, null, Modifier.size(20.dp), tint = Color(0xFF4ADE80))
-                    Spacer(Modifier.width(7.dp))
-                    Text(
-                        stringResource(R.string.home_minigame),
+                        stringResource(R.string.kage_level, level),
                         style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.ExtraBold,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFE6E1E9),
+                        modifier = Modifier.clip(RoundedCornerShape(50)).background(Color(0xFF3F3E43)).padding(horizontal = 14.dp, vertical = 5.dp),
                     )
                 }
-            }
-        }
-    }
-
-    if (showMinigame) {
-        AlertDialog(
-            onDismissRequest = { showMinigame = false },
-            confirmButton = { TextButton(onClick = { showMinigame = false }) { Text(stringResource(R.string.mine_close)) } },
-            title = { Text(stringResource(R.string.home_minigame)) },
-            text = { Text(stringResource(R.string.home_minigame_soon)) },
-        )
-    }
-}
-
-@Composable
-private fun CompactAnimeContinue(entry: WatchHistoryEntity, onClick: () -> Unit, onHide: () -> Unit) {
-    Column(
-        Modifier.width(116.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick),
-    ) {
-        Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(RoundedCornerShape(10.dp))) {
-            NetImage(
-                entry.episodeThumbnail.ifBlank { entry.animeCover.ifBlank { entry.animePoster } },
-                Modifier.fillMaxSize(),
-                entry.animeTitle,
-            )
-            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.45f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.72f))))
-            Text(
-                stringResource(R.string.home_episode_short, entry.episodeNumber),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color.White,
-                modifier = Modifier.align(Alignment.BottomStart).padding(start = 7.dp, bottom = 7.dp),
-            )
-            LinearProgressIndicator(
-                progress = { entry.progress },
-                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(3.dp),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = Color.White.copy(alpha = 0.25f),
-                drawStopIndicator = {},
-                gapSize = 0.dp,
-            )
-            IconButton(
-                onClick = onHide,
-                modifier = Modifier.align(Alignment.TopEnd).padding(3.dp)
-                    .background(Color.Black.copy(alpha = 0.45f), CircleShape)
-                    .size(22.dp),
-            ) {
-                Icon(Icons.Rounded.Close, stringResource(R.string.ux_hide_continue), tint = Color.White, modifier = Modifier.size(13.dp))
-            }
-        }
-        Text(
-            entry.animeTitle,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 5.dp, start = 1.dp, end = 1.dp),
-        )
-    }
-}
-
-@Composable
-private fun CompactMangaContinue(entry: MangaHistoryEntity, onClick: () -> Unit, onHide: () -> Unit) {
-    val progress = if (entry.pageCount > 0) ((entry.page + 1f) / entry.pageCount).coerceIn(0f, 1f) else 0f
-    Column(
-        Modifier.width(116.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick),
-    ) {
-        Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(RoundedCornerShape(10.dp))) {
-            NetImage(entry.coverUrl.orEmpty(), Modifier.fillMaxSize(), entry.mangaTitle)
-            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.45f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.72f))))
-            Text(
-                entry.chapterLabel,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color.White,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.align(Alignment.BottomStart).padding(start = 7.dp, end = 7.dp, bottom = 7.dp),
-            )
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(3.dp),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = Color.White.copy(alpha = 0.25f),
-                drawStopIndicator = {},
-                gapSize = 0.dp,
-            )
-            IconButton(
-                onClick = onHide,
-                modifier = Modifier.align(Alignment.TopEnd).padding(3.dp)
-                    .background(Color.Black.copy(alpha = 0.45f), CircleShape)
-                    .size(22.dp),
-            ) {
-                Icon(Icons.Rounded.Close, stringResource(R.string.ux_hide_continue), tint = Color.White, modifier = Modifier.size(13.dp))
-            }
-        }
-        Text(
-            entry.mangaTitle,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 5.dp, start = 1.dp, end = 1.dp),
-        )
-    }
-}
-
-/** Top-10 as small cards: a compact badge replaces the old oversized outlined number. */
-@Composable
-private fun CompactRankedRow(items: List<Anime>, onClick: (Anime) -> Unit, origin: String) {
-    val res = LocalContext.current.resources
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 20.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        itemsIndexed(items, key = { _, a -> a.id }) { index, anime ->
-            val press = remember { MutableInteractionSource() }
-            Column(
-                Modifier.width(112.dp)
-                    .pressScale(press)
-                    .clip(MaterialTheme.shapes.medium)
-                    .clickable(interactionSource = press, indication = LocalIndication.current) { onClick(anime) },
-            ) {
-                Box(Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(RoundedCornerShape(12.dp))) {
-                    NetImage(
-                        anime.poster,
-                        Modifier
-                            .fillMaxSize()
-                            .sharedKey(sharedPosterKey(anime.id, origin)),
-                        anime.title,
-                    )
-                    Box(
-                        Modifier.align(Alignment.TopStart).padding(7.dp)
-                            .clip(RoundedCornerShape(7.dp))
-                            .background(MaterialTheme.colorScheme.primary)
-                            .padding(horizontal = 7.dp, vertical = 2.dp),
-                    ) {
-                        Text(
-                            "${index + 1}",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        )
+                Box(
+                    Modifier.size(60.dp).clip(CircleShape).background(ChipBg).clickable(onClick = onBell),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Rounded.Notifications, stringResource(R.string.kage_notifications), tint = Color.White, modifier = Modifier.size(30.dp))
+                    if (unread > 0) {
+                        Box(Modifier.align(Alignment.TopEnd).padding(14.dp).size(10.dp).clip(CircleShape).background(KageColors.Red))
                     }
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.kage_exp), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.ExtraBold, color = Color(0xFFCFC9D5))
+                LinearProgressIndicator(
+                    progress = { fraction },
+                    modifier = Modifier.weight(1f).padding(horizontal = 12.dp).height(8.dp).clip(CircleShape),
+                    color = KageColors.Blue,
+                    trackColor = Color(0xFF4B4C50),
+                    drawStopIndicator = {},
+                    gapSize = 0.dp,
+                )
+                Text(
+                    if (next != null) "${nf.format(xp)} / ${nf.format(next)}" else nf.format(xp),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFFCFC9D5),
+                )
+            }
+        }
+    }
+}
+
+/** Full-width search field (the minigame button is gone, so it runs all the way to the right edge). */
+@Composable
+private fun SearchBar(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth().height(56.dp),
+        shape = RoundedCornerShape(20.dp),
+        color = SearchBg,
+        border = androidx.compose.foundation.BorderStroke(1.dp, SearchBorder),
+    ) {
+        Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Rounded.Search, null, tint = Color(0xFFCFC9D5), modifier = Modifier.size(28.dp))
+            Spacer(Modifier.width(12.dp))
+            Text(stringResource(R.string.kage_search_hint), style = MaterialTheme.typography.titleMedium, color = Color(0xFF9A9AA0))
+        }
+    }
+}
+
+/** The #1..#5 most watched titles, one big card each, with page dots. Auto-advances every 6 s. */
+@Composable
+private fun TopPager(items: List<Anime>, onOpen: (Anime) -> Unit) {
+    val pager = rememberPagerState { items.size }
+    LaunchedEffect(pager, items.size) {
+        while (items.size > 1) {
+            delay(6_000)
+            if (!pager.isScrollInProgress) pager.animateScrollToPage((pager.currentPage + 1) % items.size)
+        }
+    }
+    val nf = remember { java.text.NumberFormat.getInstance(java.util.Locale("id", "ID")) }
+    Column {
+        HorizontalPager(
+            state = pager,
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            pageSpacing = 12.dp,
+            beyondViewportPageCount = 1,
+        ) { page ->
+            val anime = items[page]
+            val press = remember { MutableInteractionSource() }
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(2.2f)
+                    .pressScale(press)
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(Color(0xFF222327))
+                    .clickable(interactionSource = press, indication = null) { onOpen(anime) },
+            ) {
+                NetImage(anime.backdrop, Modifier.fillMaxSize(), anime.title)
+                Box(
+                    Modifier.fillMaxSize().background(
+                        Brush.verticalGradient(0.35f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.85f)),
+                    ),
+                )
+                Text(
+                    "#${page + 1}",
+                    color = Color.White,
+                    fontSize = 34.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    modifier = Modifier.align(Alignment.TopStart).padding(start = 16.dp, top = 8.dp),
+                )
+                Row(
+                    Modifier.align(Alignment.TopEnd).padding(12.dp).clip(RoundedCornerShape(50)).background(Color.Black.copy(alpha = 0.7f)).padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Rounded.Visibility, null, tint = Color.White, modifier = Modifier.size(26.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Text(nf.format(anime.views), color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
                 }
                 Text(
                     anime.title,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White,
+                    style = MaterialTheme.typography.headlineSmall,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 6.dp, start = 1.dp, end = 1.dp),
+                    modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp),
                 )
-                Text(
-                    stringResource(R.string.browse_views, compactNumber(res, anime.views)),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(start = 1.dp, top = 1.dp),
+            }
+        }
+        Row(
+            Modifier.align(Alignment.CenterHorizontally).padding(top = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            repeat(items.size) { i ->
+                Box(
+                    Modifier.size(11.dp).clip(CircleShape)
+                        .background(if (pager.currentPage == i) KageColors.Blue else Color(0xFF7B7B83)),
                 )
             }
         }
     }
 }
 
+/** Section title (bold, large) with an optional rounded "Lihat Lainnya >" chip on the right. */
+@Composable
+private fun KageSection(title: String, action: String?, onAction: (() -> Unit)?, content: @Composable () -> Unit) {
+    Column(Modifier.padding(top = 24.dp)) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = Color.White, modifier = Modifier.weight(1f))
+            if (action != null && onAction != null) {
+                Row(
+                    Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(Color(0xFF292A2C))
+                        .border(1.dp, CardBorder, RoundedCornerShape(50))
+                        .clickable(onClick = onAction)
+                        .padding(start = 16.dp, end = 10.dp, top = 8.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(action, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = Color(0xFFCFC9D5))
+                    Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = Color(0xFFCFC9D5), modifier = Modifier.size(20.dp))
+                }
+            }
+        }
+        Spacer(Modifier.height(14.dp))
+        content()
+    }
+}
+
+/** Small history card: thumbnail with "Eps N", a thin progress line and the title below. */
+@Composable
+private fun HistoryCard(entry: WatchHistoryEntity, onClick: () -> Unit) {
+    val press = remember { MutableInteractionSource() }
+    Column(Modifier.width(140.dp).pressScale(press).clickable(interactionSource = press, indication = null, onClick = onClick)) {
+        Box(Modifier.fillMaxWidth().aspectRatio(1.8f).clip(RoundedCornerShape(16.dp))) {
+            NetImage(entry.episodeThumbnail.ifBlank { entry.animeCover.ifBlank { entry.animePoster } }, Modifier.fillMaxSize(), entry.animeTitle)
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.5f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.7f))))
+            Text(
+                stringResource(R.string.kage_eps_short, entry.episodeNumber),
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.align(Alignment.BottomStart).padding(start = 10.dp, bottom = 8.dp),
+            )
+        }
+        LinearProgressIndicator(
+            progress = { entry.progress },
+            modifier = Modifier.fillMaxWidth().padding(top = 3.dp).height(3.dp).clip(CircleShape),
+            color = KageColors.Blue,
+            trackColor = Color(0xFF4B4C50),
+            drawStopIndicator = {},
+            gapSize = 0.dp,
+        )
+        Text(
+            entry.animeTitle,
+            style = MaterialTheme.typography.bodyLarge,
+            color = Color(0xFFE6E1E9),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+    }
+}
+
+/** Ranked 1..50 row: yellow rank tab, poster, views and title; scrolls left to right. */
+@Composable
+private fun HotRow(items: List<Anime>, onClick: (Anime) -> Unit) {
+    val res = LocalContext.current.resources
+    LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        itemsIndexed(items, key = { _, a -> a.id }) { index, anime ->
+            val press = remember { MutableInteractionSource() }
+            Column(
+                Modifier
+                    .width(158.dp)
+                    .pressScale(press)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color(0xFF1E1F23))
+                    .clickable(interactionSource = press, indication = null) { onClick(anime) },
+            ) {
+                Box {
+                    NetImage(
+                        anime.poster.ifBlank { anime.cover },
+                        Modifier.fillMaxWidth().aspectRatio(2f / 3f).clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 14.dp, bottomEnd = 14.dp)),
+                        anime.title,
+                    )
+                    Text(
+                        "#${index + 1}",
+                        color = Color(0xFF161719),
+                        fontWeight = FontWeight.ExtraBold,
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .clip(RoundedCornerShape(topStart = 20.dp, bottomEnd = 16.dp))
+                            .background(KageColors.Yellow)
+                            .padding(horizontal = 14.dp, vertical = 6.dp),
+                    )
+                }
+                Row(Modifier.padding(start = 10.dp, end = 10.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.Visibility, null, tint = Color(0xFF9A9AA0), modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(stringResource(R.string.kage_views, compactNumber(res, anime.views)), style = MaterialTheme.typography.bodySmall, color = Color(0xFF9A9AA0), maxLines = 1)
+                }
+                Text(
+                    anime.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    minLines = 2,
+                    modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 4.dp, bottom = 12.dp),
+                )
+            }
+        }
+    }
+}
+
+/** Bell sheet: the newest episode releases, tap to open the anime. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun NotificationsSheet(releases: List<com.fuwanime.data.LatestRelease>, onDismiss: () -> Unit, onOpen: (Anime) -> Unit) {
+    val res = LocalContext.current.resources
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Color(0xFF222327)) {
+        Text(stringResource(R.string.kage_notifications), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = Color.White, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+        if (releases.isEmpty()) {
+            Text(stringResource(R.string.kage_notif_empty), color = Color(0xFF9A9AA0), modifier = Modifier.padding(20.dp))
+        } else {
+            LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
+                items(releases, key = { it.anime.id + it.episodeLabel }) { r ->
+                    Row(
+                        Modifier.fillMaxWidth().clickable { onOpen(r.anime) }.padding(horizontal = 20.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        NetImage(r.anime.poster, Modifier.size(width = 48.dp, height = 64.dp).clip(RoundedCornerShape(10.dp)), r.anime.title)
+                        Column(Modifier.padding(start = 14.dp)) {
+                            Text(r.anime.title, color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                listOf(r.episodeLabel.trim(), relativeTime(res, r.updatedAt)).filter { it.isNotBlank() }.joinToString(" · "),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF9A9AA0),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Tonal update banner: a primaryContainer card, whole card taps through to the release notes. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun UpdateBanner(info: UpdateRepository.UpdateInfo, onClick: () -> Unit, onDismiss: () -> Unit) {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        onClick = onClick,
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         shape = MaterialTheme.shapes.medium,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
         modifier = Modifier.padding(horizontal = 20.dp).padding(top = 12.dp),
     ) {
         Row(
-            Modifier.fillMaxWidth().padding(start = 14.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+            Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                Icons.Rounded.SystemUpdateAlt,
-                null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp),
-            )
+            Icon(Icons.Rounded.SystemUpdateAlt, null, modifier = Modifier.size(24.dp))
             Text(
                 stringResource(R.string.browse_update_banner, info.tag.removePrefix("v")),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f).padding(horizontal = 10.dp).clickable(onClick = onClick),
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
-                Icon(
-                    Icons.Rounded.Close,
-                    stringResource(R.string.browse_update_dismiss_cd),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp),
-                )
+            IconButton(onClick = onDismiss) {
+                Icon(Icons.Rounded.Close, stringResource(R.string.browse_update_dismiss_cd), modifier = Modifier.size(18.dp))
             }
         }
     }
 }
 
-@Composable
-private fun UpdatesSummary(updates: HomeUpdates) {
-    Surface(
-        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
-        shape = MaterialTheme.shapes.medium,
-        modifier = Modifier.padding(horizontal = 20.dp).padding(top = 12.dp),
-    ) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(Icons.Rounded.Notifications, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-            Column(Modifier.weight(1f).padding(start = 10.dp)) {
-                Text(stringResource(R.string.ux_since_last), style = MaterialTheme.typography.labelLarge)
-                Text(
-                    stringResource(R.string.ux_updates_summary, updates.total),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
-}
-
+/** Manga half of the Lanjutkan shelf: a tonal surfaceContainer card mirroring ContinueWatchingCard. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MangaContinueCard(entry: MangaHistoryEntity, onClick: () -> Unit, onHide: () -> Unit) {
     val progress = if (entry.pageCount > 0) ((entry.page + 1f) / entry.pageCount).coerceIn(0f, 1f) else 0f
-    Column(
-        Modifier.width(240.dp)
-            .clip(MaterialTheme.shapes.medium)
-            .clickable(onClick = onClick),
+    val press = remember { MutableInteractionSource() }
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.width(240.dp).pressScale(press),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        interactionSource = press,
     ) {
-        Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(MaterialTheme.shapes.medium)) {
-            NetImage(
-                entry.coverUrl.orEmpty(),
-                Modifier.fillMaxSize(),
-                "${entry.mangaTitle} — ${entry.chapterLabel}",
-                contentScale = ContentScale.Crop,
-            )
-            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.5f to Color.Transparent, 1f to ImageScrim.copy(alpha = 0.75f))))
-            Text(
-                entry.chapterLabel,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                modifier = Modifier.align(Alignment.BottomStart).padding(start = 10.dp, bottom = 10.dp),
-            )
-            LinearProgressIndicator(
-                progress = { progress },
-                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(3.dp),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = Color.White.copy(alpha = 0.25f),
-                drawStopIndicator = {},
-                gapSize = 0.dp,
-            )
-            IconButton(
-                onClick = onHide,
-                modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)
-                    .background(Color.Black.copy(alpha = 0.45f), CircleShape)
-                    .size(28.dp),
-            ) {
-                Icon(Icons.Rounded.Close, stringResource(R.string.ux_hide_continue), tint = Color.White, modifier = Modifier.size(16.dp))
+        Column(Modifier.padding(8.dp)) {
+            Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(MaterialTheme.shapes.small)) {
+                NetImage(
+                    entry.coverUrl.orEmpty(),
+                    Modifier.fillMaxSize(),
+                    "${entry.mangaTitle} — ${entry.chapterLabel}",
+                    contentScale = ContentScale.Crop,
+                )
+                Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.5f to Color.Transparent, 1f to ImageScrim.copy(alpha = 0.75f))))
+                Text(
+                    entry.chapterLabel,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    modifier = Modifier.align(Alignment.BottomStart).padding(start = 10.dp, bottom = 10.dp),
+                )
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(3.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = Color.White.copy(alpha = 0.25f),
+                    drawStopIndicator = {},
+                    gapSize = 0.dp,
+                )
+                IconButton(
+                    onClick = onHide,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)
+                        .background(ImageScrim.copy(alpha = 0.55f), CircleShape)
+                        .size(28.dp),
+                ) {
+                    Icon(Icons.Rounded.Close, stringResource(R.string.ux_hide_continue), tint = Color.White, modifier = Modifier.size(16.dp))
+                }
             }
+            Text(
+                entry.mangaTitle,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp),
+            )
+            Text(
+                stringResource(R.string.manga_library_progress, entry.chapterLabel, entry.page + 1, entry.pageCount),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 2.dp, bottom = 4.dp),
+            )
         }
-        Text(
-            entry.mangaTitle,
-            style = MaterialTheme.typography.titleSmall,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 8.dp, start = 2.dp, end = 2.dp),
-        )
-        Text(
-            stringResource(R.string.manga_library_progress, entry.chapterLabel, entry.page + 1, entry.pageCount),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 2.dp),
-        )
     }
 }
 
+/** Tonal restore banner: tertiaryContainer card with a fully rounded filled-tonal action. */
 @Composable
 private fun RestoreBanner(onRestore: () -> Unit, onDismiss: () -> Unit) {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
         shape = MaterialTheme.shapes.medium,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         modifier = Modifier.padding(horizontal = 20.dp).padding(top = 12.dp),
     ) {
-        Row(
-            Modifier.fillMaxWidth().padding(start = 14.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(Icons.Rounded.Restore, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-            Text(
-                stringResource(R.string.browse_restore_prompt),
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
-            )
-            TextButton(onClick = onRestore) { Text(stringResource(R.string.browse_restore)) }
-            IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Rounded.Close, stringResource(R.string.browse_restore_dismiss_cd), tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+        Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Rounded.Restore, null, modifier = Modifier.size(24.dp))
+                Text(
+                    stringResource(R.string.browse_restore_prompt),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
+                )
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Rounded.Close, stringResource(R.string.browse_restore_dismiss_cd), modifier = Modifier.size(18.dp))
+                }
+                FilledTonalButton(onClick = onRestore, contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp)) {
+                    Text(stringResource(R.string.browse_restore), style = MaterialTheme.typography.labelLarge)
+                }
             }
         }
     }
@@ -948,271 +859,17 @@ private fun UpdateSheet(info: UpdateRepository.UpdateInfo, install: HomeViewMode
     }
 }
 
+/** One feed section: emphasized shared header, 24dp rhythm between sections, 12dp down to the row. */
 @Composable
 private fun Section(
     title: String,
     subtitle: String? = null,
     onSeeAll: (() -> Unit)? = null,
-    seeAllLabel: String? = null,
     content: @Composable () -> Unit,
 ) {
     Column(Modifier.padding(top = 24.dp)) {
-        Row(
-            Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                if (subtitle != null) {
-                    Text(
-                        subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            if (onSeeAll != null) {
-                TextButton(onClick = onSeeAll) {
-                    Text(
-                        seeAllLabel ?: stringResource(R.string.common_see_all),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            }
-        }
+        SectionHeader(title, subtitle = subtitle, onSeeAll = onSeeAll)
         Spacer(Modifier.height(12.dp))
         content()
     }
 }
-
-@Composable
-private fun HomeTopBar(solid: Boolean, syncing: Boolean, onSearch: () -> Unit, onSettings: () -> Unit) {
-    val bg by animateColorAsState(
-        if (solid) MaterialTheme.colorScheme.surface.copy(alpha = 0.96f) else Color.Transparent,
-        label = "topbarBg",
-    )
-    val scrim = Brush.verticalGradient(listOf(Color.Black.copy(alpha = if (solid) 0f else 0.55f), Color.Transparent))
-    Column {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .background(bg)
-                .background(scrim)
-                .statusBarsPadding()
-                .padding(start = 20.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Wordmark(onDark = !solid)
-            Spacer(Modifier.weight(1f))
-            val tint = if (solid) MaterialTheme.colorScheme.onSurface else Color.White
-            IconWithTooltip(stringResource(R.string.browse_search), Icons.Rounded.Search, onSearch, tint = tint)
-            IconWithTooltip(stringResource(R.string.browse_settings), Icons.Rounded.Settings, onSettings, tint = tint)
-        }
-        RefreshHairline(syncing)
-    }
-}
-
-@Composable
-fun Wordmark(onDark: Boolean = false) {
-    val style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold, fontSize = 21.sp, letterSpacing = (-0.03).em)
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("kage", style = style, color = MaterialTheme.colorScheme.primary)
-        Text("nime", style = style, color = if (onDark) Color.White else MaterialTheme.colorScheme.onSurface)
-    }
-}
-
-
-/** The API's images are small: decode one tiny and blur it, so the stretched backdrop never shows its pixels. */
-@Composable
-private fun AmbientBackdrop(url: String, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    AsyncImage(
-        // Own cache key, so this tiny bitmap never stands in for the sharp poster. Below Android 12 blur is a no-op; the upscale still softens it.
-        model = remember(url) { ImageRequest.Builder(context).data(url).size(64).memoryCacheKey("$url#ambient").crossfade(250).build() },
-        contentDescription = null,
-        contentScale = ContentScale.Crop,
-        modifier = modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh).blur(36.dp, BlurredEdgeTreatment.Rectangle),
-    )
-}
-
-@Composable
-private fun HeroPager(items: List<Anime>, favoriteIds: Set<String>, onToggleFavorite: (Anime) -> Unit, onOpen: (Anime) -> Unit) {
-    val pager = rememberPagerState { items.size }
-    LaunchedEffect(pager, items.size) {
-        while (items.size > 1) {
-            delay(6_000)
-            if (!pager.isScrollInProgress) pager.animateScrollToPage((pager.currentPage + 1) % items.size)
-        }
-    }
-    val background = MaterialTheme.colorScheme.background
-    Box {
-        // Grows with large font scales so the title and the Tonton button are never squeezed out.
-        HorizontalPager(pager, Modifier.fillMaxWidth().height(heroHeightDp(LocalDensity.current.fontScale).dp)) { page ->
-            val anime = items[page]
-            Box(Modifier.fillMaxSize()) {
-                val press = remember { MutableInteractionSource() }
-                AmbientBackdrop(anime.poster, Modifier.fillMaxSize())
-                Box(
-                    Modifier.fillMaxSize().background(
-                        Brush.verticalGradient(
-                            0f to ImageScrim.copy(alpha = 0.6f),
-                            0.3f to ImageScrim.copy(alpha = 0.3f),
-                            0.62f to background.copy(alpha = 0.8f),
-                            1f to background,
-                        ),
-                    ),
-                )
-                Column(
-                    Modifier.fillMaxSize().statusBarsPadding().padding(top = 64.dp, start = 20.dp, end = 20.dp, bottom = 36.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    NetImage(
-                        anime.poster,
-                        Modifier
-                            .width(128.dp)
-                            .aspectRatio(2f / 3f)
-                            .pressScale(press)
-                            .sharedKey(sharedPosterKey(anime.id, "home-hero"))
-                            .shadow(24.dp, MaterialTheme.shapes.medium)
-                            .clip(MaterialTheme.shapes.medium)
-                            .clickable(interactionSource = press, indication = null) { onOpen(anime) },
-                        anime.title,
-                    )
-                    Spacer(Modifier.weight(1f))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            stringResource(R.string.browse_hero_rank, page + 1),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = 0.06.em,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(MaterialTheme.colorScheme.primary)
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                        )
-                        val kind = listOf(anime.type.takeIf { it.isNotBlank() }?.let { typeLabel(LocalContext.current.resources, it) }.orEmpty(), anime.displayYear).filter { it.isNotBlank() }.joinToString(" · ")
-                        if (kind.isNotBlank()) {
-                            Text(
-                                kind,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(start = 8.dp),
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        anime.title,
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        textAlign = TextAlign.Center,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        listOf(stringResource(R.string.browse_views, compactNumber(LocalContext.current.resources, anime.views))).plus(anime.genres.take(2)).joinToString(" · "),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Button(
-                            onClick = { onOpen(anime) },
-                            modifier = Modifier.weight(1f).heightIn(min = 50.dp),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.onSurface,
-                                contentColor = MaterialTheme.colorScheme.surface,
-                            ),
-                        ) {
-                            Icon(Icons.Rounded.PlayArrow, null)
-                            Spacer(Modifier.width(6.dp))
-                            Text(stringResource(R.string.browse_watch), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                        }
-                        Spacer(Modifier.width(10.dp))
-                        val favorite = anime.id in favoriteIds
-                        OutlinedIconButton(
-                            onClick = { onToggleFavorite(anime) },
-                            modifier = Modifier.size(50.dp),
-                            shape = RoundedCornerShape(14.dp),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.22f)),
-                        ) {
-                            Icon(
-                                if (favorite) Icons.Rounded.Check else Icons.Rounded.Add,
-                                if (favorite) stringResource(R.string.browse_remove_from_library) else stringResource(R.string.browse_add_to_library),
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        Row(
-            Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            repeat(items.size) { i ->
-                val selected = pager.currentPage == i
-                val w by animateDpAsState(if (selected) 20.dp else 6.dp, label = "dot")
-                Box(
-                    Modifier
-                        .height(6.dp)
-                        .width(w)
-                        .clip(CircleShape)
-                        .background(
-                            if (selected) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                        ),
-                )
-            }
-        }
-    }
-}
-
-/** Top-10 row: big outlined rank numbers peeking out from behind each poster. */
-@Composable
-private fun RankedRow(items: List<Anime>, onClick: (Anime) -> Unit, origin: String) {
-    val strokePx = with(LocalDensity.current) { 2.dp.toPx() }
-    LazyRow(
-        contentPadding = PaddingValues(start = 8.dp, end = 20.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        itemsIndexed(items, key = { _, a -> a.id }) { index, anime ->
-            Box(Modifier.width(158.dp).height(160.dp)) {
-                Text(
-                    "${index + 1}",
-                    style = TextStyle(
-                        fontFamily = PlusJakarta,
-                        fontSize = 120.sp,
-                        lineHeight = 120.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = (-0.06).em,
-                        drawStyle = Stroke(width = strokePx),
-                    ),
-                    color = RankStroke,
-                    modifier = Modifier.align(Alignment.BottomStart).offset(y = 14.dp),
-                )
-                val press = remember { MutableInteractionSource() }
-                NetImage(
-                    anime.poster,
-                    Modifier
-                        .align(Alignment.TopEnd)
-                        .width(106.dp)
-                        .height(152.dp)
-                        .pressScale(press)
-                        .sharedKey(sharedPosterKey(anime.id, origin))
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable(interactionSource = press, indication = LocalIndication.current) { onClick(anime) },
-                    anime.title,
-                )
-            }
-        }
-    }
-}
-
-private val RankStroke = Color(0xFF4A4455)

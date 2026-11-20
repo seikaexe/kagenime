@@ -63,7 +63,6 @@ object BackupCodec {
 /** Bookkeeping keys that describe this install, not the user's choices, stay out of the backup. */
 fun isBackedUpSetting(key: String): Boolean =
     key != "update_last_check_ms" && key != "update_dismissed_tag" && key != "home_last_open_ms" &&
-        !key.startsWith("account_") &&
         !key.startsWith("notify_baseline_") && !key.startsWith("notify_release_") &&
         !key.startsWith("notify_manga_") && !key.startsWith("download_baseline_") && !key.startsWith("backup_")
 

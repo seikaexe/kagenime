@@ -58,8 +58,15 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.material.icons.rounded.PlayCircle
+import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.ThumbDown
+import androidx.compose.material.icons.rounded.ThumbUp
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AspectRatio
+import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.BrightnessMedium
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ErrorOutline
@@ -123,6 +130,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.fuwanime.ui.theme.AnimeTheme
+import com.fuwanime.ui.theme.rememberAnimeSeed
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
@@ -190,6 +199,7 @@ import com.fuwanime.util.fuwaViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 private const val TAG = "FuwaPlayer"
 
@@ -283,6 +293,7 @@ fun PlayerRoute(
     }
     val state by vm.state.collectAsStateWithLifecycle()
     val download by vm.download.collectAsStateWithLifecycle()
+    val reaction by vm.reaction.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val res = LocalContext.current.resources
     LaunchedEffect(vm) {
@@ -318,6 +329,8 @@ fun PlayerRoute(
     var sleepAtMs by remember { mutableStateOf<Long?>(null) }
     /** Set when a timed sleep fired; blocks autoplay until the user presses play again. */
     var sleepExpired by remember { mutableStateOf(false) }
+    /** Minutes picked on the custom sleep slider; only read while [sleep] is CUSTOM. */
+    var customMinutes by remember { mutableIntStateOf(CUSTOM_SLEEP_DEFAULT_MINUTES) }
     /** Episode whose opening was auto-skipped or re-marked; survives rotation and PiP unlike VideoSurface state. */
     var autoSkipHandledFor by remember { mutableStateOf<String?>(null) }
 
@@ -500,6 +513,7 @@ fun PlayerRoute(
             opMark = opMark,
             segments = segmentsFor(segmentsState, state.episode.id),
             sleep = sleep,
+            sleepAtMs = sleepAtMs,
             sleepExpired = sleepExpired,
             // Only the episode that was tapped has a thumbnail to fly in; later episodes just fade.
             thumbnailKey = sharedKey?.takeIf { state.episode.id == initialEpisodeId },
@@ -531,6 +545,8 @@ fun PlayerRoute(
         )
     }
 
+    // Kagenime keeps one fixed palette on every screen; the poster-seeded scheme is not applied here.
+    AnimeTheme(null) {
     Box(Modifier.fillMaxSize()) {
         // Two-pane on landscape tablets at expanded width: video left, episode/info panel right.
         val twoPane = useTwoPanePlayer(windowWidthDp, windowHeightDp) && !fullscreen && !inPip
@@ -543,6 +559,8 @@ fun PlayerRoute(
                 EpisodeInfo(
                     state = state,
                     download = download,
+                    reaction = reaction,
+                    onReact = vm::react,
                     onSelectSource = { vm.selectSource(it, player.currentPosition) },
                     onPlay = vm::play,
                     onNext = vm::playNext,
@@ -559,6 +577,8 @@ fun PlayerRoute(
                 EpisodeInfo(
                     state = state,
                     download = download,
+                    reaction = reaction,
+                    onReact = vm::react,
                     onSelectSource = { vm.selectSource(it, player.currentPosition) },
                     onPlay = vm::play,
                     onNext = vm::playNext,
@@ -609,6 +629,7 @@ fun PlayerRoute(
             positionMs = playback.position,
             opMark = opMark,
             sleep = sleep,
+            customMinutes = customMinutes,
             onDismiss = { showSettings = false },
             onSource = {
                 vm.selectSource(it, player.currentPosition)
@@ -630,9 +651,15 @@ fun PlayerRoute(
             onClearOpMark = vm::clearOpMark,
             onSleep = { option ->
                 sleep = option
-                sleepAtMs = sleepDeadline(option, System.currentTimeMillis())
+                sleepAtMs = sleepDeadline(option, System.currentTimeMillis(), customMinutes)
+            },
+            onCustomMinutes = { minutes ->
+                customMinutes = minutes
+                // Re-arm from now so dragging the slider while CUSTOM is active restarts the countdown.
+                if (sleep == SleepOption.CUSTOM) sleepAtMs = sleepDeadline(SleepOption.CUSTOM, System.currentTimeMillis(), minutes)
             },
         )
+    }
     }
 }
 
@@ -650,6 +677,7 @@ private fun VideoSurface(
     opMark: OpMark?,
     segments: List<SkipSegment>,
     sleep: SleepOption,
+    sleepAtMs: Long?,
     sleepExpired: Boolean,
     thumbnailKey: String?,
     placeholderUrl: String,
@@ -904,6 +932,7 @@ private fun VideoSurface(
                 playback = playback,
                 state = state,
                 markers = segments.map { it.startMs to it.endMs } + listOfNotNull(opMark?.takeIf { it.isValid }?.let { it.startMs to it.endMs }),
+                sleepAtMs = sleepAtMs,
                 fullscreen = fullscreen,
                 pipSupported = pipSupported,
                 onLock = {
@@ -1029,6 +1058,8 @@ private fun Controls(
     state: PlayerUiState,
     /** Skippable ranges (AniSkip segments, the user's OP mark) drawn on the seekbar. */
     markers: List<Pair<Long, Long>>,
+    /** Wall-clock sleep deadline; the top bar counts it down while armed. */
+    sleepAtMs: Long?,
     fullscreen: Boolean,
     pipSupported: Boolean,
     onLock: () -> Unit,
@@ -1041,6 +1072,16 @@ private fun Controls(
     onInteract: () -> Unit,
 ) {
     var scrubbing by remember { mutableStateOf<Float?>(null) }
+    // The sleep chip ticks once a second while a deadline is armed; the wall clock keeps running across pauses.
+    var sleepNowMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(sleepAtMs) {
+        if (sleepAtMs == null) return@LaunchedEffect
+        while (true) {
+            sleepNowMs = System.currentTimeMillis()
+            delay(1_000)
+        }
+    }
+    val sleepRemaining = sleepRemainingMs(sleepAtMs, sleepNowMs)
     Box(
         Modifier
             .fillMaxSize()
@@ -1073,6 +1114,24 @@ private fun Controls(
                     color = Color.White.copy(alpha = 0.75f),
                     style = MaterialTheme.typography.labelSmall,
                 )
+            }
+            sleepRemaining?.let { remaining ->
+                val remainingText = formatDuration(remaining)
+                val countdownCd = stringResource(R.string.watch_sleep_countdown_cd, remainingText)
+                Surface(
+                    color = Color.White.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(50),
+                    modifier = Modifier.padding(end = 4.dp),
+                ) {
+                    Row(
+                        Modifier.semantics { contentDescription = countdownCd }.padding(horizontal = 10.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Rounded.Bedtime, null, tint = Color.White, modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(remainingText, color = Color.White, style = MaterialTheme.typography.labelMedium)
+                    }
+                }
             }
             if (fullscreen) {
                 IconWithTooltip(stringResource(R.string.watch_lock_screen), Icons.Rounded.Lock, onLock, tint = Color.White)
@@ -1338,10 +1397,13 @@ private fun EndOverlay(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun EpisodeInfo(
     state: PlayerUiState,
     download: DownloadItem?,
+    reaction: Int,
+    onReact: (Int) -> Unit,
     onSelectSource: (StreamSource) -> Unit,
     onPlay: (Episode) -> Unit,
     onNext: () -> Unit,
@@ -1350,19 +1412,117 @@ private fun EpisodeInfo(
     onDeleteDownload: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
+    val blue = MaterialTheme.colorScheme.primary
+    val chipBg = MaterialTheme.colorScheme.surfaceContainer
     LazyColumn(
         contentPadding = PaddingValues(bottom = 24.dp),
         modifier = modifier.fillMaxSize().windowInsetsPadding(WindowInsets.navigationBars),
     ) {
-        item {
-            Column(Modifier.padding(20.dp)) {
-                Text(state.anime?.title.orEmpty(), style = MaterialTheme.typography.titleLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    stringResource(R.string.watch_episode_label, state.episode.number),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+        // Like / Dislike / Quality / Download / Share, one scrollable row of pills.
+        item(key = "actions") {
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                item {
+                    Row(Modifier.clip(CircleShape).background(chipBg), verticalAlignment = Alignment.CenterVertically) {
+                        ActionPill(Icons.Rounded.ThumbUp, stringResource(R.string.kage_like), active = reaction == 1, activeColor = blue, background = Color.Transparent) { onReact(1) }
+                        Box(Modifier.width(1.dp).height(24.dp).background(MaterialTheme.colorScheme.outlineVariant))
+                        ActionPill(Icons.Rounded.ThumbDown, stringResource(R.string.kage_dislike), active = reaction == -1, activeColor = MaterialTheme.colorScheme.error, background = Color.Transparent) { onReact(-1) }
+                    }
+                }
+                item {
+                    var open by remember { mutableStateOf(false) }
+                    Box {
+                        ActionPill(
+                            Icons.Rounded.PlayCircle,
+                            (state.source?.label() ?: "—") + " " + stringResource(R.string.kage_quality),
+                            background = chipBg,
+                            enabled = state.sources.size > 1,
+                        ) { open = true }
+                        DropdownMenu(open, onDismissRequest = { open = false }) {
+                            state.sources.forEach { src ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            if (src.url == state.recommended?.url) "${src.label()} · ${stringResource(R.string.ux_source_recommended)}" else src.label(),
+                                        )
+                                    },
+                                    trailingIcon = if (src.url == state.source?.url) {
+                                        { Icon(Icons.Rounded.Check, null, Modifier.size(18.dp)) }
+                                    } else null,
+                                    onClick = { open = false; onSelectSource(src) },
+                                )
+                            }
+                        }
+                    }
+                }
+                item {
+                    var open by remember { mutableStateOf(false) }
+                    val busy = download?.inProgress == true
+                    val done = download?.state == DownloadState.DONE
+                    Box {
+                        ActionPill(
+                            when {
+                                done -> Icons.Rounded.DownloadDone
+                                busy -> Icons.Rounded.Downloading
+                                else -> Icons.Rounded.Download
+                            },
+                            when {
+                                done -> stringResource(R.string.watch_saved_offline_quality, download!!.entity.quality)
+                                busy -> "${(download!!.progress * 100).toInt()}%"
+                                else -> stringResource(R.string.kage_download)
+                            },
+                            background = chipBg,
+                            enabled = !done && !busy && state.sources.isNotEmpty() && !state.offline,
+                        ) { open = true }
+                        DropdownMenu(open, onDismissRequest = { open = false }) {
+                            state.sources.forEach { src ->
+                                val res = LocalContext.current.resources
+                                DropdownMenuItem(
+                                    text = { Text(src.quality + " · " + stringResource(R.string.ux_download_estimate, formatBytes(res, estimateDownloadBytes(src.quality)))) },
+                                    leadingIcon = { Icon(Icons.Rounded.Download, null) },
+                                    onClick = { open = false; onDownload(src) },
+                                )
+                            }
+                        }
+                    }
+                }
+                item {
+                    val shareText = stringResource(R.string.kage_share_text, state.anime?.title.orEmpty(), state.episode.number)
+                    ActionPill(Icons.Rounded.Share, stringResource(R.string.kage_share), background = chipBg) {
+                        val send = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, shareText)
+                        }
+                        context.startActivity(Intent.createChooser(send, null))
+                    }
+                }
+            }
+        }
+        item(key = "info") {
+            Column(Modifier.padding(horizontal = 16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    NetImage(
+                        state.anime?.let { it.poster.ifBlank { it.cover } }.orEmpty(),
+                        Modifier.size(56.dp).clip(CircleShape),
+                        state.anime?.title,
+                    )
+                    Column(Modifier.weight(1f).padding(start = 16.dp)) {
+                        Text(state.anime?.title.orEmpty(), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            stringResource(R.string.watch_episode_label, state.episode.number),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                val synopsis = state.anime?.synopsis.orEmpty()
+                if (synopsis.isNotBlank()) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(synopsis, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                }
                 Spacer(Modifier.height(16.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     // Short "Ep N" labels so the text never wraps on narrow phones.
@@ -1395,73 +1555,74 @@ private fun EpisodeInfo(
                         Icon(Icons.Rounded.SkipNext, null, Modifier.size(20.dp))
                     }
                 }
-                Spacer(Modifier.height(12.dp))
-                DownloadRow(state, download, onDownload, onDeleteDownload)
-            }
-        }
-        if (state.sources.size > 1) {
-            item {
-                Text(stringResource(R.string.watch_quality), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(start = 20.dp, bottom = 8.dp))
-                LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(state.sources, key = { it.url }) { s ->
-                        FilterChip(
-                            selected = s.url == state.source?.url,
-                            onClick = { onSelectSource(s) },
-                            label = {
-                                Text(
-                                    if (s.url == state.recommended?.url) "${s.label()} · ${stringResource(R.string.ux_source_recommended)}"
-                                    else s.label(),
-                                )
-                            },
-                            leadingIcon = if (s.url == state.source?.url) {
-                                { Icon(Icons.Rounded.Check, null, Modifier.size(16.dp)) }
-                            } else null,
-                        )
-                    }
+                // Progress / saved-offline / cancel row only appears once a download exists.
+                if (download != null) {
+                    Spacer(Modifier.height(12.dp))
+                    DownloadRow(state, download, onDownload, onDeleteDownload)
                 }
             }
         }
         if (state.nearby.isNotEmpty()) {
-            item {
+            item(key = "episodes") {
                 Text(
-                    stringResource(R.string.watch_episodes_title),
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.padding(start = 20.dp, top = 24.dp, bottom = 8.dp),
+                    stringResource(R.string.kage_episode_list),
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 12.dp),
                 )
-                val rowState = rememberLazyListState()
-                LaunchedEffect(state.episode.id, state.nearby.size) {
-                    val i = state.nearby.indexOfFirst { it.id == state.episode.id }
-                    if (i >= 0) rowState.scrollToItem((i - 1).coerceAtLeast(0))
-                }
-                LazyRow(state = rowState, contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    items(state.nearby, key = { it.id }) { ep ->
+                // Numbered squares; the one playing now is filled with the accent blue.
+                FlowRow(
+                    Modifier.padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    state.nearby.forEach { ep ->
                         val current = ep.id == state.episode.id
-                        // Animekompi episodes carry no still of their own; the anime's artwork
-                        // keeps the strip from showing empty boxes.
-                        val shown = ep.thumbnail.ifBlank { state.anime?.let { a -> a.cover.ifBlank { a.poster } }.orEmpty() }
-                        Column(
-                            Modifier.width(150.dp).clip(MaterialTheme.shapes.small).clickable(enabled = !current) { onPlay(ep) },
+                        Box(
+                            Modifier
+                                .size(60.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(if (current) blue else Color.White)
+                                .clickable(enabled = !current) { onPlay(ep) },
+                            contentAlignment = Alignment.Center,
                         ) {
-                            Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(MaterialTheme.shapes.small)) {
-                                NetImage(shown, Modifier.fillMaxSize(), stringResource(R.string.watch_episode_label, ep.number))
-                                if (current) {
-                                    Box(
-                                        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)),
-                                        contentAlignment = Alignment.Center,
-                                    ) { Text(stringResource(R.string.watch_now_playing), color = Color.White, fontWeight = FontWeight.Bold) }
-                                }
-                            }
                             Text(
-                                stringResource(R.string.watch_episode_label, ep.number),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = if (current) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(top = 6.dp),
+                                ep.number,
+                                color = if (current) Color.White else Color(0xFF161719),
+                                fontWeight = FontWeight.ExtraBold,
+                                style = MaterialTheme.typography.titleMedium,
+                                maxLines = 1,
                             )
                         }
                     }
                 }
             }
         }
+    }
+}
+
+/** Rounded pill used for Like / Dislike / Quality / Download / Share. */
+@Composable
+private fun ActionPill(
+    icon: ImageVector,
+    label: String,
+    background: Color,
+    active: Boolean = false,
+    activeColor: Color = Color.Unspecified,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
+    val tint = if (active && activeColor != Color.Unspecified) activeColor else MaterialTheme.colorScheme.onSurface
+    Row(
+        Modifier
+            .clip(CircleShape)
+            .background(background)
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 18.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, null, tint = tint.copy(alpha = if (enabled) 1f else 0.6f), modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(label, style = MaterialTheme.typography.titleSmall, fontWeight = if (active) FontWeight.ExtraBold else FontWeight.SemiBold, color = tint.copy(alpha = if (enabled) 1f else 0.6f), maxLines = 1)
     }
 }
 
@@ -1477,6 +1638,7 @@ private fun PlayerSettingsSheet(
     positionMs: Long,
     opMark: OpMark?,
     sleep: SleepOption,
+    customMinutes: Int,
     onDismiss: () -> Unit,
     onSource: (StreamSource) -> Unit,
     onSpeed: (Float) -> Unit,
@@ -1485,6 +1647,7 @@ private fun PlayerSettingsSheet(
     onMarkOpEnd: () -> Unit,
     onClearOpMark: () -> Unit,
     onSleep: (SleepOption) -> Unit,
+    onCustomMinutes: (Int) -> Unit,
     /** Null for a downloaded episode: its file can't be handed to another app. */
     onOpenExternal: (() -> Unit)?,
 ) {
@@ -1552,7 +1715,26 @@ private fun PlayerSettingsSheet(
                 SheetTitle(stringResource(R.string.watch_sleep_timer))
                 LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(SleepOption.entries) { option ->
-                        FilterChip(selected = option == sleep, onClick = { onSleep(option) }, label = { Text(option.minutes?.let { pluralStringResource(R.plurals.watch_sleep_minutes, it, it) } ?: stringResource(option.label)) })
+                        // The custom chip shows its picked minutes once selected, so the row reads as the actual duration.
+                        val minutes = if (option == SleepOption.CUSTOM && option == sleep) customMinutes else option.minutes
+                        FilterChip(selected = option == sleep, onClick = { onSleep(option) }, label = { Text(minutes?.let { pluralStringResource(R.plurals.watch_sleep_minutes, it, it) } ?: stringResource(option.label)) })
+                    }
+                }
+                if (sleep == SleepOption.CUSTOM) {
+                    val sliderCd = stringResource(R.string.watch_sleep_custom_slider_cd)
+                    val sliderState = pluralStringResource(R.plurals.watch_sleep_minutes, customMinutes, customMinutes)
+                    Row(Modifier.padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Slider(
+                            value = customMinutes.toFloat(),
+                            onValueChange = { onCustomMinutes(snapCustomMinutes(it.roundToInt())) },
+                            valueRange = CUSTOM_SLEEP_MIN_MINUTES.toFloat()..CUSTOM_SLEEP_MAX_MINUTES.toFloat(),
+                            steps = (CUSTOM_SLEEP_MAX_MINUTES - CUSTOM_SLEEP_MIN_MINUTES) / CUSTOM_SLEEP_STEP_MINUTES - 1,
+                            modifier = Modifier.weight(1f).semantics {
+                                contentDescription = sliderCd
+                                stateDescription = sliderState
+                            },
+                        )
+                        Text(sliderState, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(start = 12.dp))
                     }
                 }
             }

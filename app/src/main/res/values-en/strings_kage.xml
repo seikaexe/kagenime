@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="kage_search_hint">Search anime here</string>
+    <string name="kage_exp">EXP</string>
+    <string name="kage_level">Lvl. %1$d</string>
+    <string name="kage_recent">Recently Watched</string>
+    <string name="kage_see_more">See More</string>
+    <string name="kage_hot">Hot Anime</string>
+    <string name="kage_see_rank">See Ranking</string>
+    <string name="kage_new_update">New Update Anime</string>
+    <string name="kage_like">Like</string>
+    <string name="kage_dislike">Dislike</string>
+    <string name="kage_share">Share</string>
+    <string name="kage_quality">Quality</string>
+    <string name="kage_download">Download</string>
+    <string name="kage_episode_list">Episode List</string>
+    <string name="kage_notifications">Notifications</string>
+    <string name="kage_notif_empty">No new releases yet</string>
+    <string name="kage_default_user">Kagenime User</string>
+    <string name="kage_rate">Rate the App</string>
+    <string name="kage_share_text">Watch %1$s Episode %2$s on Kagenime</string>
+    <string name="kage_group_quality">Quality</string>
+    <string name="kage_version_desc">Current app version</string>
+    <string name="kage_eps_short">Ep %1$s</string>
+    <string name="kage_views">%1$s views</string>
+    <string name="splash_tagline">Anime &amp; manga, ad-free</string>
+</resources>

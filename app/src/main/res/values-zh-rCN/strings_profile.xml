@@ -1,7 +1,7 @@
 <resources>
     <string name="profile_title">个人资料</string>
     <string name="profile_settings_desc">等级、任务和边框</string>
-    <string name="profile_default_name">Fuwa</string>
+    <string name="profile_default_name">Kagenime</string>
     <string name="profile_edit_name">修改名称</string>
     <string name="profile_name_label">名称</string>
     <string name="profile_save">保存</string>

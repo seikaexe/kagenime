@@ -23,7 +23,7 @@ class AppInstaller(private val context: Context, private val client: OkHttpClien
 
     /** Streams [url] to the cache, reporting 0..1 through [onProgress] (-1 when the size is unknown). */
     suspend fun download(url: String, onProgress: (Float) -> Unit): File = withContext(Dispatchers.IO) {
-        val target = File(context.cacheDir, "update/fuwastream-update.apk").apply { parentFile?.mkdirs(); delete() }
+        val target = File(context.cacheDir, "update/kagenime-update.apk").apply { parentFile?.mkdirs(); delete() }
         client.newCall(Request.Builder().url(url).build()).execute().use { response ->
             if (!response.isSuccessful) throw IOException("HTTP ${response.code}")
             val body = response.body ?: throw IOException("empty body")

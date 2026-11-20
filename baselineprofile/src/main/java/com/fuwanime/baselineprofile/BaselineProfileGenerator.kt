@@ -44,6 +44,6 @@ class BaselineProfileGenerator {
     }
 
     private companion object {
-        const val PACKAGE = "com.kagenime.app"
+        const val PACKAGE = "com.fuwanime.app"
     }
 }

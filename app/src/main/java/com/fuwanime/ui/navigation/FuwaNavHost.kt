@@ -114,6 +114,7 @@ import com.fuwanime.ui.home.HomeRoute
 import com.fuwanime.ui.library.LibraryRoute
 import com.fuwanime.ui.legal.LegalRoute
 import com.fuwanime.ui.player.PlayerRoute
+import com.fuwanime.ui.detail.TrailerPlayerRoute
 import com.fuwanime.ui.schedule.ScheduleRoute
 import com.fuwanime.ui.profile.ProfileRoute
 import com.fuwanime.ui.settings.SettingsRoute
@@ -126,6 +127,7 @@ internal object Routes {
     const val LIBRARY = "library"
     const val DETAIL = "detail/{animeId}?from={from}"
     const val PLAYER = "player/{animeId}/{episodeId}?number={number}&thumb={thumb}&shared={shared}"
+    const val TRAILER = "trailer?url={url}&title={title}&thumb={thumb}"
     const val SETTINGS = "settings"
     const val STATS = "stats"
     const val PROFILE = "profile"
@@ -150,6 +152,10 @@ internal object Routes {
     fun player(animeId: String, episodeId: String, number: String, thumb: String = "", shared: String? = null) =
         "player/${Uri.encode(animeId)}/${Uri.encode(episodeId)}?number=${Uri.encode(number)}" +
             "&thumb=${Uri.encode(thumb)}&shared=${Uri.encode(shared.orEmpty())}"
+
+    /** The anime trailer plays on its own page, like any other stream. */
+    fun trailer(url: String, title: String, thumb: String = "") =
+        "trailer?url=${Uri.encode(url)}&title=${Uri.encode(title)}&thumb=${Uri.encode(thumb)}"
 }
 
 private enum class Tab(val route: String, @StringRes val label: Int, val icon: ImageVector, val selectedIcon: ImageVector) {
@@ -163,8 +169,8 @@ private enum class Tab(val route: String, @StringRes val label: Int, val icon: I
 /** Detail and player sit on top of the tabs; moving to or from them is a fade under a shared element. */
 private fun NavBackStackEntry.isOverlay() = destination.route == Routes.DETAIL || destination.route == Routes.PLAYER
 
-private val NavInactive = Color(0xFF8A8494)
-private val NavHairline = Color(0xFF1F1C27)
+private val NavInactive = Color(0xFFE6E1E9)
+private val NavHairline = Color(0xFF17181A)
 
 private val FadeThroughIn = fadeIn(tween(Motion.Medium, 90, Motion.EmphasizedDecelerate)) +
     scaleIn(tween(Motion.Medium, 90, Motion.EmphasizedDecelerate), initialScale = 0.94f)
@@ -246,6 +252,7 @@ fun FuwaNavHost(initialTarget: LaunchTarget? = null, onInitialTargetConsumed: ()
             is LaunchTarget.Manga -> nav.navigate(Routes.mangaDetail(target.id))
             LaunchTarget.Search -> openExplore(null, true)
             LaunchTarget.Schedule -> nav.navigateTab(Routes.SCHEDULE)
+            LaunchTarget.Stats -> nav.navigate(Routes.STATS)
             is LaunchTarget.Resume -> resumeRoute(container.libraryRepository.historyEntry(target.episodeId))?.let { nav.navigate(it) }
             is LaunchTarget.Episode -> nav.navigate(Routes.player(target.animeId, target.episodeId, target.number))
             is LaunchTarget.MangaChapter -> nav.navigate(Routes.mangaReader(target.mangaId, target.chapterId))
@@ -261,8 +268,8 @@ fun FuwaNavHost(initialTarget: LaunchTarget? = null, onInitialTargetConsumed: ()
     var barHeight by remember { mutableStateOf(0.dp) }
     val colors = MaterialTheme.colorScheme
     val itemColors = NavigationBarItemDefaults.colors(
-        selectedIconColor = colors.primary,
-        selectedTextColor = colors.onSurface,
+        selectedIconColor = Color.White,
+        selectedTextColor = Color.White,
         indicatorColor = colors.secondaryContainer,
         unselectedIconColor = NavInactive,
         unselectedTextColor = NavInactive,
@@ -335,8 +342,7 @@ fun FuwaNavHost(initialTarget: LaunchTarget? = null, onInitialTargetConsumed: ()
                                     onSettings = { nav.navigate(Routes.SETTINGS) },
                                     onSchedule = { nav.navigateTab(Routes.SCHEDULE) },
                                     onExplore = { g -> openExplore(g, false) },
-                                    onLibrary = { nav.navigateTab(Routes.LIBRARY) },
-                                    onProfile = { nav.navigate(Routes.PROFILE) },
+                                    onHistory = { nav.navigateTab(Routes.LIBRARY) },
                                 )
                             }
                         }
@@ -413,6 +419,9 @@ fun FuwaNavHost(initialTarget: LaunchTarget? = null, onInitialTargetConsumed: ()
                                     entryKey = entry.id,
                                     onBack = { nav.popBackStack() },
                                     onPlay = { anime, ep, shared, thumb -> play(anime.id, ep, shared, thumb) },
+                                    onPlayTrailer = { url, title, thumb ->
+                                        nav.navigate(Routes.trailer(url, title, thumb))
+                                    },
                                     onAnimeClick = openAnime,
                                     onGenre = { g -> openExplore(g, false) },
                                     onOpenManga = openManga,
@@ -439,6 +448,21 @@ fun FuwaNavHost(initialTarget: LaunchTarget? = null, onInitialTargetConsumed: ()
                                     },
                                 )
                             }
+                        }
+                        composable(
+                            Routes.TRAILER,
+                            arguments = listOf(
+                                navArgument("url") { type = NavType.StringType },
+                                navArgument("title") { type = NavType.StringType; defaultValue = "" },
+                                navArgument("thumb") { type = NavType.StringType; defaultValue = "" },
+                            ),
+                        ) { entry ->
+                            TrailerPlayerRoute(
+                                url = entry.arguments?.getString("url").orEmpty(),
+                                title = entry.arguments?.getString("title").orEmpty(),
+                                thumbnail = entry.arguments?.getString("thumb").orEmpty(),
+                                onBack = { nav.popBackStack() },
+                            )
                         }
                         composable(Routes.STATS) { Scoped { StatsRoute(onBack = { nav.popBackStack() }, onExplore = { nav.navigateTab(Routes.explore()) }) } }
                         composable(Routes.SETTINGS) {
@@ -482,10 +506,9 @@ fun FuwaNavHost(initialTarget: LaunchTarget? = null, onInitialTargetConsumed: ()
                     NavigationBar(
                         modifier = Modifier
                             .onSizeChanged { barHeight = with(density) { it.height.toDp() } }
-                            .hazeEffect(hazeState, frostedStyle())
-                            // Hairline on top separates the bar from posters scrolling under it.
                             .drawBehind { drawLine(NavHairline, Offset.Zero, Offset(size.width, 0f), 1.dp.toPx()) },
-                        containerColor = Color.Transparent,
+                        // Solid bar, same charcoal as the Kagenime design (no frosted blur).
+                        containerColor = colors.surfaceContainerLow,
                     ) {
                         Tab.entries.forEach { tab ->
                             val selected = tab == currentTab

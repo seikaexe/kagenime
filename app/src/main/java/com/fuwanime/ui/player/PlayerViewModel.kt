@@ -115,6 +115,18 @@ class PlayerViewModel(
         .flatMapLatest { downloads.forEpisode(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    /** Like (1), dislike (-1) or none (0) for the episode on screen. */
+    val reaction: StateFlow<Int> = _state.map { it.episode.id }.distinctUntilChanged()
+        .flatMapLatest { settingsStore.reaction(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    /** Tapping the active button again clears it; liking replaces a dislike and the other way round. */
+    fun react(value: Int) {
+        val id = _state.value.episode.id
+        val next = if (reaction.value == value) 0 else value
+        viewModelScope.launch { settingsStore.setReaction(id, next) }
+    }
+
     /** The user's opening mark for this anime, shared by all its episodes. */
     val opMark: StateFlow<OpMark?> =
         settingsStore.opMark(animeId).stateIn(viewModelScope, SharingStarted.Eagerly, null)

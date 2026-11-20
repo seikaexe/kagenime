@@ -1,28 +1,44 @@
 # Release signing
 
-Kagenime releases are signed with the permanent keystore in `keystore/kagenime-release.jks`
-(committed so community builds and CI produce the same certificate).
+Every public FuwaStream build must be signed with the same permanent key. Android refuses
+to update an installed app whose certificate changed, so the CI build fails instead of
+falling back to the debug key.
 
 ## Permanent certificate
 
 - Alias: `fuwanime`
-- Store/key password: `kagenime123`
-- SHA-256: `1E:A6:9E:91:19:B6:7F:DE:75:0A:57:09:31:8D:09:95:CF:AC:46:AF:E0:99:4D:B7:D1:D9:86:41:E0:66:F9:16`
+- SHA-256: `1C:DB:C5:6C:56:C6:DB:A6:8F:BF:74:C0:DD:E3:7B:42:8B:6F:A9:EC:57:FE:6E:E1:31:6F:D7:00:83:76:75:44`
 - Validity: until 2059
 
-GitHub Actions uses repository secrets when present (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`,
-`KEY_ALIAS`); otherwise it falls back to the committed keystore above.
+The keystore itself is **not** committed. It is stored in the GitHub Actions secrets of
+`LT-SYAII/fuwastream`:
+
+| Secret | Purpose |
+| --- | --- |
+| `KEYSTORE_BASE64` | Base64 of the `.jks` file |
+| `KEYSTORE_PASSWORD` | Store and key password |
+| `KEY_ALIAS` | `fuwanime` |
 
 ## Local release build
 
 ```bash
-export KEYSTORE_PATH=$PWD/keystore/kagenime-release.jks
-export KEYSTORE_PASSWORD=kagenime123
+export KEYSTORE_PATH=/secure/path/fuwanime-release.jks
+export KEYSTORE_PASSWORD='…'
 export KEY_ALIAS=fuwanime
 gradle assembleRelease -PabiSplits=false
 ```
 
-Output: `app/build/outputs/apk/release/app-release.apk` (CI renames it to `kagenime.apk`).
+Without those variables the release task fails with a clear message; debug builds are
+unaffected.
 
-> Keep the keystore safe. Android only accepts an in-place update signed with the same
-> certificate, so changing the key means users must uninstall the old app first.
+## One-time migration from the old debug-signed APK
+
+Builds up to `2.0.0-build.1` were signed with the runner's debug key. Android cannot update
+them in place:
+
+1. Open **Cadangkan sekarang** in Settings and save a backup to a folder.
+2. Uninstall the old FuwaStream once.
+3. Install the new APK from the release page.
+4. Restore the backup.
+
+All later releases keep the same certificate, so updates work normally again.

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="kage_search_hint">在这里搜索动漫</string>
+    <string name="kage_exp">EXP</string>
+    <string name="kage_level">Lv. %1$d</string>
+    <string name="kage_recent">最近观看</string>
+    <string name="kage_see_more">查看更多</string>
+    <string name="kage_hot">热门动漫</string>
+    <string name="kage_see_rank">查看排行</string>
+    <string name="kage_new_update">最新更新</string>
+    <string name="kage_like">喜欢</string>
+    <string name="kage_dislike">不喜欢</string>
+    <string name="kage_share">分享</string>
+    <string name="kage_quality">画质</string>
+    <string name="kage_download">下载</string>
+    <string name="kage_episode_list">剧集列表</string>
+    <string name="kage_notifications">通知</string>
+    <string name="kage_notif_empty">暂无新更新</string>
+    <string name="kage_default_user">Kagenime 用户</string>
+    <string name="kage_rate">给应用评分</string>
+    <string name="kage_share_text">在 Kagenime 观看 %1$s 第 %2$s 集</string>
+    <string name="kage_group_quality">画质</string>
+    <string name="kage_version_desc">当前应用版本</string>
+    <string name="kage_eps_short">第%1$s集</string>
+    <string name="kage_views">%1$s 次观看</string>
+    <string name="splash_tagline">动漫与漫画，无广告</string>
+</resources>

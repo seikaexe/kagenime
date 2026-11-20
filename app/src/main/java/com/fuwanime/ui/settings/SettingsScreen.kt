@@ -1,6 +1,26 @@
 package com.fuwanime.ui.settings
 
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
+import com.fuwanime.FuwaApp
+import com.fuwanime.data.ProfileUi
+import com.fuwanime.ui.theme.KageColors
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Checkbox
 import androidx.compose.material.icons.rounded.Explicit
@@ -23,7 +43,6 @@ import android.provider.DocumentsContract
 import android.net.Uri
 import android.content.Intent
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
 import com.fuwanime.ui.components.readableWidth
 import com.fuwanime.ui.components.frostedStyle
 import dev.chrisbanes.haze.hazeSource
@@ -39,11 +58,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -80,7 +97,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -165,7 +181,6 @@ fun SettingsRoute(onBack: () -> Unit, onOpenLegal: (String) -> Unit, onOpenProfi
         SettingsViewModel(c.settingsStore, c.libraryRepository, c.downloadRepository, c.mangaDownloads, c.backupRepository, c::refreshHomeSurfaces)
     }
     val s by vm.settings.collectAsStateWithLifecycle()
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var confirm by remember { mutableStateOf<Pair<String, () -> Unit>?>(null) }
@@ -273,78 +288,26 @@ fun SettingsRoute(onBack: () -> Unit, onOpenLegal: (String) -> Unit, onOpenProfi
         )
     }
 
-    val hazeState = remember { HazeState() }
+    val profile by remember { (context.applicationContext as FuwaApp).container.profileRepository.observe() }.collectAsStateWithLifecycle(null)
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            LargeTopAppBar(
-                title = { Text(stringResource(R.string.mine_settings)) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.mine_back)) } },
-                scrollBehavior = scrollBehavior,
-                // Transparent so the frosted layer shows the list scrolling underneath.
-                colors = TopAppBarDefaults.largeTopAppBarColors(containerColor = Color.Transparent, scrolledContainerColor = Color.Transparent),
-                modifier = Modifier.hazeEffect(hazeState, frostedStyle()),
-            )
+            Column {
+                CenterAlignedTopAppBar(
+                    title = { Text(stringResource(R.string.mine_settings), fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.headlineSmall) },
+                    navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.mine_back)) } },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.background),
+                )
+                HorizontalDivider(color = Color(0xFF303133))
+            }
         },
         snackbarHost = { FuwaSnackbarHost(snackbar) },
     ) { padding ->
         LazyColumn(
-            Modifier.fillMaxHeight().readableWidth().hazeSource(hazeState),
+            Modifier.fillMaxHeight().readableWidth(),
             contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = 32.dp),
         ) {
-            item { ActionRow(Icons.Rounded.Person, stringResource(R.string.profile_title), stringResource(R.string.profile_settings_desc), onOpenProfile) }
-            item { Group(stringResource(R.string.mine_group_display)) }
-            item {
-                Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        Icon(Icons.Rounded.DarkMode, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(end = 16.dp, start = 8.dp))
-                        Text(stringResource(R.string.mine_theme), style = MaterialTheme.typography.bodyLarge)
-                    }
-                    SingleChoiceSegmentedButtonRow(Modifier.padding(top = 12.dp)) {
-                        val modes = listOf(ThemeMode.SYSTEM to stringResource(R.string.mine_theme_system), ThemeMode.LIGHT to stringResource(R.string.mine_theme_light), ThemeMode.DARK to stringResource(R.string.mine_theme_dark))
-                        modes.forEachIndexed { i, (mode, label) ->
-                            SegmentedButton(
-                                selected = s.themeMode == mode,
-                                onClick = { vm.update { setThemeMode(mode) } },
-                                shape = SegmentedButtonDefaults.itemShape(i, modes.size),
-                            ) { Text(label) }
-                        }
-                    }
-                }
-            }
-            item {
-                var languageTag by remember { mutableStateOf(currentLanguageTag(context)) }
-                // Language names stay in their own language on purpose.
-                val languages = listOf(null to stringResource(R.string.mine_language_system), "id" to "Bahasa Indonesia", "ms" to "Bahasa Melayu", "en" to "English", "zh-CN" to "中文（简体）")
-                ChoiceRow(Icons.Rounded.Language, stringResource(R.string.mine_language), languages.map { it.first }, languageTag, { tag -> languages.first { it.first == tag }.second }) { tag ->
-                    languageTag = tag
-                    (context as? Activity)?.let { setAppLanguage(it, tag) }
-                }
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                item {
-                    SwitchRow(Icons.Rounded.Palette, stringResource(R.string.mine_dynamic_color), stringResource(R.string.mine_dynamic_color_desc), s.dynamicColor) {
-                        vm.update { setDynamicColor(it) }
-                    }
-                }
-            }
-            item {
-                SwitchRow(Icons.Rounded.Contrast, stringResource(R.string.mine_amoled), stringResource(R.string.mine_amoled_desc), s.amoledBlack) {
-                    vm.update { setAmoledBlack(it) }
-                }
-            }
-
-            item { Group(stringResource(R.string.mine_group_content)) }
-            item {
-                val mature by vm.store.matureContent.collectAsStateWithLifecycle(false)
-                SwitchRow(
-                    Icons.Rounded.Explicit,
-                    stringResource(R.string.manga_settings_mature),
-                    stringResource(R.string.manga_settings_mature_desc),
-                    mature,
-                ) { vm.update { setMatureContent(it) } }
-            }
-
+            item { ProfileHeader(profile, onOpenProfile) }
             item { Group(stringResource(R.string.mine_group_player)) }
             item {
                 ChoiceRow(Icons.Rounded.HighQuality, stringResource(R.string.mine_default_quality), listOf(360, 480, 720, 1080), s.preferredQuality, { "${it}p" }) {
@@ -401,6 +364,57 @@ fun SettingsRoute(onBack: () -> Unit, onOpenLegal: (String) -> Unit, onOpenProfi
                 ChoiceRow(Icons.Rounded.TouchApp, stringResource(R.string.mine_double_tap), listOf(5, 10, 15, 30), s.doubleTapSeekSeconds, { res.getString(R.string.mine_seconds_short, it) }) {
                     vm.update { setDoubleTapSeekSeconds(it) }
                 }
+            }
+
+            item { Group(stringResource(R.string.mine_group_display)) }
+            item {
+              SettingCard {
+                Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp)) {
+                    Text(stringResource(R.string.mine_theme), style = MaterialTheme.typography.bodyLarge, color = Color(0xFFE6E1E9))
+                    SingleChoiceSegmentedButtonRow(Modifier.padding(top = 12.dp).fillMaxWidth()) {
+                        val modes = listOf(ThemeMode.SYSTEM to stringResource(R.string.mine_theme_system), ThemeMode.LIGHT to stringResource(R.string.mine_theme_light), ThemeMode.DARK to stringResource(R.string.mine_theme_dark))
+                        modes.forEachIndexed { i, (mode, label) ->
+                            SegmentedButton(
+                                selected = s.themeMode == mode,
+                                onClick = { vm.update { setThemeMode(mode) } },
+                                shape = SegmentedButtonDefaults.itemShape(i, modes.size),
+                            ) { Text(label) }
+                        }
+                    }
+                }
+              }
+            }
+            item {
+                var languageTag by remember { mutableStateOf(currentLanguageTag(context)) }
+                // Language names stay in their own language on purpose.
+                val languages = listOf(null to stringResource(R.string.mine_language_system), "id" to "Bahasa Indonesia", "ms" to "Bahasa Melayu", "en" to "English", "zh-CN" to "中文（简体）")
+                ChoiceRow(Icons.Rounded.Language, stringResource(R.string.mine_language), languages.map { it.first }, languageTag, { tag -> languages.first { it.first == tag }.second }) { tag ->
+                    languageTag = tag
+                    (context as? Activity)?.let { setAppLanguage(it, tag) }
+                }
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                item {
+                    SwitchRow(Icons.Rounded.Palette, stringResource(R.string.mine_dynamic_color), stringResource(R.string.mine_dynamic_color_desc), s.dynamicColor) {
+                        vm.update { setDynamicColor(it) }
+                    }
+                }
+            }
+            item {
+                SwitchRow(Icons.Rounded.Contrast, stringResource(R.string.mine_amoled), stringResource(R.string.mine_amoled_desc), s.amoledBlack) {
+                    vm.update { setAmoledBlack(it) }
+                }
+            }
+
+            item { Group(stringResource(R.string.mine_group_content)) }
+            item {
+                val mature by vm.store.matureContent.collectAsStateWithLifecycle(false)
+                SwitchRow(
+                    Icons.Rounded.Explicit,
+                    stringResource(R.string.manga_settings_mature),
+                    stringResource(R.string.manga_settings_mature_desc),
+                    mature,
+                ) { vm.update { setMatureContent(it) } }
             }
 
             item { Group(stringResource(R.string.mine_group_notifications)) }
@@ -605,29 +619,64 @@ fun SettingsRoute(onBack: () -> Unit, onOpenLegal: (String) -> Unit, onOpenProfi
     }
 }
 
+/** Section title: bold, light grey, no accent colour (matches the Kagenime settings design). */
 @Composable
 private fun Group(title: String) {
     Text(
         title,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 24.dp, top = 24.dp, bottom = 4.dp),
+        style = MaterialTheme.typography.titleLarge,
+        fontWeight = FontWeight.ExtraBold,
+        color = Color(0xFFCFC9D5),
+        modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp),
     )
+}
+
+/** Rounded dark card every settings row sits in. */
+@Composable
+private fun SettingCard(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, content: @Composable () -> Unit) {
+    val shape = RoundedCornerShape(20.dp)
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 5.dp)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .then(modifier)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+    ) { content() }
 }
 
 @Composable
 private fun SwitchRow(icon: ImageVector, title: String, subtitle: String?, checked: Boolean, onChange: (Boolean) -> Unit) {
-    ListItem(
-        headlineContent = { Text(title) },
-        supportingContent = if (subtitle != null) {
-            { Text(subtitle) }
-        } else null,
-        leadingContent = { Icon(icon, null) },
-        // The row is the one control (TalkBack reads it once); the Switch just shows the state.
-        trailingContent = { Switch(checked = checked, onCheckedChange = null) },
-        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-        modifier = Modifier.toggleable(value = checked, role = Role.Switch, onValueChange = onChange).padding(horizontal = 8.dp),
-    )
+    SettingCard(Modifier.toggleable(value = checked, role = Role.Switch, onValueChange = onChange)) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f).padding(end = 12.dp)) {
+                Text(title, style = MaterialTheme.typography.bodyLarge, color = Color(0xFFE6E1E9))
+                if (subtitle != null) {
+                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp))
+                }
+            }
+            Text(
+                if (checked) "On" else "Off",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color(0xFFE6E1E9),
+                modifier = Modifier.padding(end = 10.dp),
+            )
+            // The row is the one control (TalkBack reads it once); the Switch just shows the state.
+            Switch(
+                checked = checked,
+                onCheckedChange = null,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = KageColors.Blue,
+                    checkedTrackColor = Color(0xFF214565),
+                    checkedBorderColor = Color.Transparent,
+                    uncheckedThumbColor = Color(0xFFBABABA),
+                    uncheckedTrackColor = Color(0xFF4B4C50),
+                    uncheckedBorderColor = Color.Transparent,
+                ),
+            )
+        }
+    }
 }
 
 @Composable
@@ -662,15 +711,19 @@ private fun NotificationBlockedCard(title: String, subtitle: String, action: Str
 
 @Composable
 private fun ActionRow(icon: ImageVector, title: String, subtitle: String?, onClick: (() -> Unit)?) {
-    ListItem(
-        headlineContent = { Text(title) },
-        supportingContent = if (subtitle != null) {
-            { Text(subtitle) }
-        } else null,
-        leadingContent = { Icon(icon, null) },
-        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-        modifier = (if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier).padding(horizontal = 8.dp),
-    )
+    SettingCard(onClick = onClick) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.bodyLarge, color = Color(0xFFE6E1E9))
+                if (subtitle != null) {
+                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp))
+                }
+            }
+            if (onClick != null) {
+                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -683,15 +736,41 @@ private fun <T> ChoiceRow(
     label: (T) -> String,
     onSelect: (T) -> Unit,
 ) {
-    Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 8.dp, end = 16.dp))
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-        }
-        FlowRow(Modifier.padding(start = 48.dp, top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            options.forEach { opt ->
-                FilterChip(selected = opt == selected, onClick = { onSelect(opt) }, label = { Text(label(opt)) })
+    SettingCard {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge, color = Color(0xFFE6E1E9))
+            FlowRow(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                options.forEach { opt ->
+                    FilterChip(selected = opt == selected, onClick = { onSelect(opt) }, label = { Text(label(opt)) })
+                }
             }
+        }
+    }
+}
+
+/** Header card: avatar initial, name, level chip. Taps through to the profile page. */
+@Composable
+private fun ProfileHeader(profile: ProfileUi?, onClick: () -> Unit) {
+    val name = profile?.name?.takeIf { it.isNotBlank() } ?: stringResource(R.string.kage_default_user)
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(70.dp).clip(CircleShape).background(Color.White), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(64.dp).clip(CircleShape).background(KageColors.Blue), contentAlignment = Alignment.Center) {
+                Text(name.take(1).uppercase(), color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.ExtraBold)
+            }
+        }
+        Column(Modifier.padding(start = 16.dp)) {
+            Text(name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                stringResource(R.string.kage_level, profile?.level ?: 1),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFE6E1E9),
+                modifier = Modifier.clip(RoundedCornerShape(50)).background(Color(0xFF403F44)).padding(horizontal = 14.dp, vertical = 5.dp),
+            )
         }
     }
 }
